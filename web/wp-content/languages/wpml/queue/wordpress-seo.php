@@ -1,0 +1,2 @@
+<?php
+return ['items'=>['Date'=>['urls'=>[],'names'=>[],'cmp'=>['wordpress-seo',1]],'ID'=>['urls'=>[],'names'=>[],'cmp'=>['wordpress-seo',1]],'Page'=>['urls'=>[],'names'=>[],'cmp'=>['wordpress-seo',1]],'%s Archive'=>['urls'=>[],'names'=>[],'cmp'=>['wordpress-seo',1]],'FAQ\\4block keyword'=>['urls'=>[],'names'=>[],'cmp'=>['wordpress-seo',1]],'SEO\\4block keyword'=>['urls'=>[],'names'=>[],'cmp'=>['wordpress-seo',1]],'Yoast SEO'=>['urls'=>[],'names'=>[],'cmp'=>['wordpress-seo',1]]]];

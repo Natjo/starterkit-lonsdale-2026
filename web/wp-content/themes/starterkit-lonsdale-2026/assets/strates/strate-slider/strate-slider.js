@@ -1,0 +1,1 @@
+import Slider from"../../components/slider/slider.js?v=111420";export default el=>{const slider=el.querySelector(".slider");const myslider=new Slider(slider);myslider.add();const images=el.querySelectorAll("img");myslider.onchange=(index,maxindex,percent)=>{}};

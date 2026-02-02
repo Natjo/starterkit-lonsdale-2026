@@ -1,0 +1,132 @@
+.slider:not(.inactive) {
+    display: grid;
+    --nb: 1;
+    --offset: 0px;
+    grid-column: var(--ctr) / fluid;
+    grid-template-columns: subgrid;
+
+    .slider-content {
+        margin-left: calc(-1 * var(--left));
+        margin-right: calc(-1 * var(--right));
+        display: grid;
+        justify-content: start;
+        grid-auto-flow: column;
+        gap: var(--gap);
+        overflow-y: hidden;
+        overflow-x: scroll;
+        overscroll-behavior-x: contain;
+        scroll-snap-type: x mandatory;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+        will-change: scroll-position;
+
+        &::-webkit-scrollbar {
+            display: none;
+        }
+    }
+
+    .slider-wrapper {
+        grid-column: inherit;
+        container-type: inline-size;
+    }
+
+    .item {
+        scroll-snap-align: start;
+        scroll-margin: var(--left);
+        width: calc((100cqw - (var(--gap) * (var(--nb) - 1))) / var(--nb) - var(--offset));
+
+        &:first-child {
+            margin-left: var(--left);
+        }
+
+        &:last-child {
+            margin-right: var(--right);
+        }
+    }
+
+    &:not(.disable) {
+        .swipe {
+            scroll-snap-type: unset;
+            user-select: none;
+
+            .item {
+                pointer-events: none;
+            }
+        }
+
+        .grab {
+            cursor: grab;
+        }
+    }
+
+    &.disable {
+        --offset: 0px;
+
+        .slider-btn {
+            display: none;
+        }
+    }
+}
+
+.slider-btn {
+    cursor: pointer;
+    grid-row: 2;
+    grid-column: 1;
+    width: 4rem;
+    height: 4rem;
+    background-color: var(--color-3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color .25s ease, color .25s ease;
+
+    @media (--breakpoint-lg-up) {
+        &:hover {
+            background-color: var(--color-2);
+            color: #fff;
+        }
+    }
+
+    &.hide {
+        display: none;
+    }
+
+    &.prev {
+        justify-self: start;
+    }
+
+    &.next {
+        justify-self: end;
+    }
+
+    &[aria-disabled=true] {
+        opacity: .5;
+        pointer-events: none;
+    }
+}
+
+.slider-navigation {
+    display: flex;
+    gap: 1rem;
+    justify-self: end;
+
+    .slider-btn {
+        width: 5rem;
+        height: 5rem;
+
+        &:hover {
+            background-color: var(--color-2);
+            color: #fff;
+        }
+    }
+}
+
+.slider.inactive {
+
+    .slider-btn,
+    .slider-pagination {
+        display: none
+    }
+}

@@ -1,0 +1,13 @@
+.link {
+    display: inline-block;
+
+    &:hover {
+        text-decoration: underline;
+    }
+
+    &.link-1 {}
+
+    &.link-2 {
+        font-weight: 600;
+    }
+}

@@ -1,0 +1,2 @@
+.btn{align-items:center;background-color:var(--color-2);border-radius:.4rem;box-sizing:border-box;color:#fff;display:inline-flex;font-size:1.6rem;font-weight:600;gap:.8rem;justify-content:center;line-height:2rem;padding:1.4rem 1.8rem;text-align:center;transition:opacity .3s ease;transition:background .3s ease;white-space:nowrap;&[aria-disabled=true]{opacity:.5}&:hover{background:#0090aa}@media (min-width:1141px){padding-bottom:1.6rem;padding-left:2.4rem;padding-right:2.4rem;padding-top:1.6rem}}
+/*# sourceMappingURL=styles.css.map */

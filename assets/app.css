@@ -1,0 +1,29 @@
+/* styles */
+@import "styles/reset.css";
+@import "styles/variables.css";
+@import "styles/layout.css";
+@import "styles/fonts.css";
+@import "styles/classes.css";
+@import "styles/rte.css";
+//@import "styles/print.css" print;
+
+/* common */
+@import "common/header-nav/header-nav.css";
+@import "common/footer/footer.css";
+
+/* modules */
+@import "modules/lenis/lenis.css"
+
+/* components */
+//@import "components/slider/slider.css";
+
+/* cards */
+//@import "cards/card-news/card-news.css";
+
+
+/* heros */
+//@import "heros/hero-homepage/hero-homepage.css";
+
+/* strates */
+//@import "strates/strate-text/strate-text.css";
+//@import "strates/strate-slider/strate-slider.css";

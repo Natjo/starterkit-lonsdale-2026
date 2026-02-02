@@ -1,0 +1,72 @@
+.hero-page {
+    background-color: var(--color-1);
+    color: #fff;
+
+    .grid {
+        align-items: center;
+        align-content: center;
+        grid-row: 1;
+    }
+
+    picture {
+        overflow: hidden;
+    }
+
+    img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    @media (--breakpoint-lg-down) {
+        .title {
+            margin-top: 6rem;
+        }
+
+        picture {
+            grid-column: full;
+            clip-path: path("M0,20.6C175.4,8.9,357.1,1.8,543.4,0l196.7,0c185.1,1.8,365.6,8.8,539.8,20.3V769H0V20.6z");
+        }
+
+        .hero-content {
+            margin-bottom: 4rem;
+        }
+
+        .intro {
+            margin-top: 2.6rem;
+        }
+
+        img {
+            aspect-ratio: 393/236;
+        }
+    }
+
+    @media (--breakpoint-lg-up) {
+        height: 62rem;
+        box-sizing: content-box;
+
+        .hero-content {
+            grid-column: ctr / left;
+            grid-row: 1;
+            height: 62rem;
+            margin-right: var(--gap);
+        }
+
+        picture {
+            grid-column: center / full;
+            height: 100%;
+            grid-row: 1;
+            clip-path: path("M2000,620H24.2C8.5,529,0,430.9,0,328.5C0,212.2,11,101.2,31,0h1969V620z");
+            margin-left: var(--gap);
+        }
+
+        h1 {
+            grid-column: 1/6;
+            margin-bottom: 3.4rem;
+        }
+
+        .intro {
+            grid-column: 1/6;
+        }
+    }
+}

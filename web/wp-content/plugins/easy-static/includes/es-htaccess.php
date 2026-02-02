@@ -1,0 +1,51 @@
+
+# KILL THEM ETAGS
+Header unset ETag
+FileETag none
+
+# BEGIN Expire headers
+<IfModule mod_expires.c>
+ExpiresActive On
+ExpiresDefault "access plus 7200 seconds"
+ExpiresByType image/jpg "access plus 2592000 seconds"
+ExpiresByType image/jpeg "access plus 2592000 seconds"
+ExpiresByType image/png "access plus 2592000 seconds"
+ExpiresByType image/gif "access plus 2592000 seconds"
+ExpiresByType image/webp "access plus 2592000 seconds"
+ExpiresByType image/svg+xml "access plus 2592000 seconds"
+ExpiresByType image/svg "access plus 2592000 seconds"
+ExpiresByType video/ogg "access plus 4 months"
+ExpiresByType audio/ogg "access plus 4 months"
+ExpiresByType video/mp4 "access plus 4 months"
+ExpiresByType video/webm "access plus 4 months"
+AddType image/x-icon .ico
+ExpiresByType image/ico "access plus 2592000 seconds"
+ExpiresByType image/icon "access plus 2592000 seconds"
+ExpiresByType image/x-icon "access plus 2592000 seconds"
+ExpiresByType font/woff2 "access plus 4 months"
+ExpiresByType text/css "access plus 2592000 seconds"
+ExpiresByType text/javascript "access plus 2592000 seconds"
+ExpiresByType text/html "access plus 7200 seconds"
+ExpiresByType application/xhtml+xml "access plus 7200 seconds"
+ExpiresByType application/javascript A2592000
+ExpiresByType application/x-javascript "access plus 2592000 seconds"
+</IfModule>
+
+# BEGIN Cache-Control Headers
+<IfModule mod_headers.c>
+<FilesMatch "\.(ico|jpe?g|png|gif|svg|webp|swf|css|gz|woff2)$">
+Header set Cache-Control "max-age=2592000, public"
+</FilesMatch>
+<FilesMatch "\.(js)$">
+Header set Cache-Control "max-age=2592000, private"
+</FilesMatch>
+<filesMatch "\.(html|htm)$">
+Header set Cache-Control "max-age=7200, public"
+</filesMatch>
+# Disable caching for scripts and other dynamic files
+<FilesMatch "\.(pl|php|cgi|spl|scgi|fcgi)$">
+Header unset Cache-Control
+</FilesMatch>
+</IfModule>
+# END Cache-Control Headers
+# END Expire headers

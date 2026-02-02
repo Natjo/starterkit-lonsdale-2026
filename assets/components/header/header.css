@@ -1,0 +1,12 @@
+.header {
+    margin-bottom: 4rem;
+    display: grid;
+    gap: 2.6rem;
+    align-content: start;
+    justify-items: start;
+
+    @media (--breakpoint-lg-up) {
+        margin-bottom: 6rem;
+        gap: 3.2rem;
+    }
+}

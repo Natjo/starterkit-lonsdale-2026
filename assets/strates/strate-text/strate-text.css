@@ -1,0 +1,10 @@
+.strate-text {
+    height: 50vh;
+    align-content: center;
+
+    .intro { 
+        text-align: center;
+        font-size: 4rem;
+        line-height: 1.2
+    }
+}

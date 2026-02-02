@@ -1,0 +1,8 @@
+.intro {
+    font-size: 1.8rem;
+    line-height: 1.4;
+
+        @media (--breakpoint-lg-up) {
+       font-size: 2rem;
+    }
+}
