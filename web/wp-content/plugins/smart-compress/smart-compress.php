@@ -37,14 +37,14 @@ function sm_generate($originalFilepath, $resizedFilepath, $newWidth, $newHeight,
     if ($sc_quality == 1) { //best
         $sc_compression = 80;
         $sc_blur = 0.98;
-        $sc_radius = 1.2;
-        $sc_sigma = .6;
+        $sc_radius = 0.3;
+        $sc_sigma = .5;
     }
     if ($sc_quality == 0) { //optimal
         $sc_compression = 70;
         $sc_blur = 1;
         $sc_radius = 0;
-        $sc_sigma =0;
+        $sc_sigma = 0;
     }
     if ($sc_quality == 2) { //green
         $sc_compression = 50;
@@ -54,10 +54,6 @@ function sm_generate($originalFilepath, $resizedFilepath, $newWidth, $newHeight,
     }
 
     $image = new Imagick($originalFilepath);
-
-
-
-
     $format = $image->getImageFormat();
 
     $w = $image->getImageWidth();
@@ -75,11 +71,9 @@ function sm_generate($originalFilepath, $resizedFilepath, $newWidth, $newHeight,
     }
 
     $image->setImageCompressionQuality($sc_compression);
-
-
-
     $image->stripImage();
     $image->setOption('filter:support', '2.0');
+
     if ($format == "GIF") {
         $image = $image->coalesceImages();
 
@@ -103,6 +97,7 @@ function sm_generate($originalFilepath, $resizedFilepath, $newWidth, $newHeight,
 
     // $image->setOption('webp:lossless', 'true');
     $image->sharpenImage($sc_radius, $sc_sigma);
+    //$image->unsharpMaskImage($sm_radius, $sm_sigma, 1, 0.03);
     $image->setImageFormat("webp");
 
     if ($format == "PNG") {
@@ -114,6 +109,9 @@ function sm_generate($originalFilepath, $resizedFilepath, $newWidth, $newHeight,
     } else {
         $image->writeImage($resizedFilepath);
     }
+
+    $image->clear();
+    $image->destroy();
 }
 
 

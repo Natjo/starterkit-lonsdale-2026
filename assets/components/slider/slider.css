@@ -2,23 +2,25 @@
     display: grid;
     --nb: 1;
     --offset: 0px;
-    grid-column: var(--ctr) / fluid;
+    grid-column: ctr / fluid;
     grid-template-columns: subgrid;
 
     .slider-content {
+        user-select: none;
         margin-left: calc(-1 * var(--left));
         margin-right: calc(-1 * var(--right));
         display: grid;
         justify-content: start;
         grid-auto-flow: column;
         gap: var(--gap);
+        overflow-x: auto;
         overflow-y: hidden;
-        overflow-x: scroll;
         overscroll-behavior-x: contain;
         scroll-snap-type: x mandatory;
-        -ms-overflow-style: none;
+        scroll-snap-stop: always;
         scrollbar-width: none;
         -webkit-overflow-scrolling: touch;
+        contain: layout style;
         will-change: scroll-position;
 
         &::-webkit-scrollbar {
@@ -35,6 +37,13 @@
         scroll-snap-align: start;
         scroll-margin: var(--left);
         width: calc((100cqw - (var(--gap) * (var(--nb) - 1))) / var(--nb) - var(--offset));
+
+        img,
+        picture {
+            pointer-events: none;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
 
         &:first-child {
             margin-left: var(--left);
@@ -63,7 +72,8 @@
     &.disable {
         --offset: 0px;
 
-        .slider-btn {
+        .slider-btn,
+        .slider-pagination {
             display: none;
         }
     }
@@ -81,6 +91,7 @@
     justify-content: center;
     border-radius: 50%;
     transition: background-color .25s ease, color .25s ease;
+    will-change: background-color;
 
     @media (--breakpoint-lg-up) {
         &:hover {
@@ -111,6 +122,8 @@
     display: flex;
     gap: 1rem;
     justify-self: end;
+    grid-column: ctr;
+
 
     .slider-btn {
         width: 5rem;
@@ -119,6 +132,31 @@
         &:hover {
             background-color: var(--color-2);
             color: #fff;
+        }
+    }
+}
+
+.slider-pagination {
+    display: flex;
+    gap: .5rem;
+    justify-content: center;
+    align-items: center;
+    padding-block: 1rem;
+    grid-column: ctr;
+
+    .slider-dot {
+        width: .5rem;
+        height: .5rem;
+        border-radius: 50%;
+        background-color: currentColor;
+        opacity: .3;
+        transition: opacity .25s ease, transform .25s ease;
+        will-change: opacity, transform;
+        cursor: pointer;
+
+        &.is-active {
+            opacity: 1;
+            transform: scale(1.4);
         }
     }
 }

@@ -20,11 +20,11 @@ $nonce = wp_create_nonce('sm_nonce');
                     <input id="sc-quality-0" type="radio" name="sc-quality" value="0" <?= $sc_quality == 0 ? "checked" : "" ?>><label for="sc-quality-0"><span>Optimal</span></label>
                     <input id="sc-quality-2" type="radio" name="sc-quality" value="2" <?= $sc_quality == 2 ? "checked" : "" ?>><label for="sc-quality-2"><span>Green</span></label>
                 </div>
-
             </section>
 
             <section>
                 <h2>Generate Uploads <button class="sc-btn-tips" value="uploads">?</button></h2>
+
                 <form action="test" class="sc-generate">
                     <ul class="sc-choices ">
 
@@ -160,167 +160,6 @@ $nonce = wp_create_nonce('sm_nonce');
             </div>
         </div>
 
-        <!--
-        <div class="sc-images">
-            <div class="images">
-                <h3>Photoshop</h3>
-                <ul>
-                    <li>
-                        <figure>
-                            <img src="<?= wp_guess_url() ?>/wp-content/plugins/smart-compress/img/landscape1-300x296.jpg" alt="">
-                            <figcaption><?= round(filesize(WP_CONTENT_DIR . '/plugins/smart-compress/img/landscape1-300x296.jpg') / 1024) ?>Ko</figcaption>
-                        </figure>
-                    </li>
-                    <li>
-                        <figure>
-                            <img src="<?= wp_guess_url() ?>/wp-content/plugins/smart-compress/img/landscape-300x296.jpg" alt="">
-                            <figcaption><?= round(filesize(WP_CONTENT_DIR . '/plugins/smart-compress/img/landscape-300x296.jpg') / 1024) ?>Ko</figcaption>
-                        </figure>
-                    </li>
-                    <li>
-                        <figure>
-                            <img src="<?= wp_guess_url() ?>/wp-content/plugins/smart-compress/img/portait-600x592.jpg" alt="" width="100%">
-                            <figcaption><b>X2</b> <?= round(filesize(WP_CONTENT_DIR . '/plugins/smart-compress/img/portait-600x592.jpg') / 1024) ?>Ko</figcaption>
-                        </figure>
-                    </li>
-                    <li>
-                        <figure>
-                            <img src="<?= wp_guess_url() ?>/wp-content/plugins/smart-compress/img/portait-300x296.jpg" alt="">
-                            <figcaption><?= round(filesize(WP_CONTENT_DIR . '/plugins/smart-compress/img/portait-300x296.jpg') / 1024) ?>Ko</figcaption>
-                        </figure>
-                    </li>
-                    <li>
-                        <figure>
-                            <img src="<?= wp_guess_url() ?>/wp-content/plugins/smart-compress/img/portait-150x148.jpg" alt="">
-                            <figcaption><?= round(filesize(WP_CONTENT_DIR . '/plugins/smart-compress/img/portait-150x148.jpg') / 1024) ?>Ko</figcaption>
-                        </figure>
-                    </li>
-                    <li>
-                        <figure>
-                            <img src="<?= wp_guess_url() ?>/wp-content/plugins/smart-compress/img/portait-75x74.jpg" alt="">
-                            <figcaption><?= round(filesize(WP_CONTENT_DIR . '/plugins/smart-compress/img/portait-75x74.jpg') / 1024) ?>Ko</figcaption>
-                        </figure>
-                    </li>
-                </ul>
-            </div>
-
-            <div class="images">
-                <h3>Wordpress</h3>
-                <ul>
-                    <li>
-                        <figure>
-                            <img src="<?= wp_guess_url() ?>/wp-content/plugins/smart-compress/img/wp-landscape1-300x296.jpg" alt="">
-                            <figcaption><?= round(filesize(WP_CONTENT_DIR . '/plugins/smart-compress/img/wp-landscape1-300x296.jpg') / 1024) ?>Ko</figcaption>
-                        </figure>
-                    </li>
-                    <li>
-                        <figure>
-                            <img src="<?= wp_guess_url() ?>/wp-content/plugins/smart-compress/img/wp-landscape-300x296.jpg" alt="">
-                            <figcaption><?= round(filesize(WP_CONTENT_DIR . '/plugins/smart-compress/img/wp-landscape-300x296.jpg') / 1024) ?>Ko</figcaption>
-                        </figure>
-                    </li>
-                    <li>
-                        <figure>
-                            <img src="<?= wp_guess_url() ?>/wp-content/plugins/smart-compress/img/wp-600x592.jpg" alt="" width="100%">
-                            <figcaption><b>X2</b> <?= round(filesize(WP_CONTENT_DIR . '/plugins/smart-compress/img/wp-600x592.jpg') / 1024) ?>Ko</figcaption>
-                        </figure>
-                    </li>
-
-                    <li>
-                        <figure>
-                            <img src="<?= wp_guess_url() ?>/wp-content/plugins/smart-compress/img/wp-300x296.jpg" alt="">
-                            <figcaption><?= round(filesize(WP_CONTENT_DIR . '/plugins/smart-compress/img/wp-300x296.jpg') / 1024) ?>Ko</figcaption>
-                        </figure>
-                    </li>
-                    <li>
-                        <figure>
-                            <img src="<?= wp_guess_url() ?>/wp-content/plugins/smart-compress/img/wp-150x148.jpg" alt="">
-                            <figcaption><?= round(filesize(WP_CONTENT_DIR . '/plugins/smart-compress/img/wp-150x148.jpg') / 1024) ?>Ko</figcaption>
-                        </figure>
-                    </li>
-                    <li>
-                        <figure>
-                            <img src="<?= wp_guess_url() ?>/wp-content/plugins/smart-compress/img/wp-75x74.jpg" alt="">
-                            <figcaption><?= round(filesize(WP_CONTENT_DIR . '/plugins/smart-compress/img/wp-75x74.jpg') / 1024) ?>Ko</figcaption>
-                        </figure>
-                    </li>
-                </ul>
-
-            </div>
-
-            <div class="images">
-                <h3>Webp</h3>
-                <ul>
-                    <li>
-                        <figure>
-                            <img src="<?= wp_guess_url() ?>/wp-content/plugins/smart-compress/img/landscape1-webp-300x296.webp" alt="">
-                            <figcaption><?= round(filesize(WP_CONTENT_DIR . '/plugins/smart-compress/img/landscape1-webp-300x296.webp') / 1024) ?>Ko</figcaption>
-                        </figure>
-                    </li>
-                    <li>
-                        <figure>
-                            <img src="<?= wp_guess_url() ?>/wp-content/plugins/smart-compress/img/landscape-webp-300x296.webp" alt="">
-                            <figcaption><?= round(filesize(WP_CONTENT_DIR . '/plugins/smart-compress/img/landscape-webp-300x296.webp') / 1024) ?>Ko</figcaption>
-                        </figure>
-                    </li>
-                    <li>
-                        <figure>
-                            <img src="<?= wp_guess_url() ?>/wp-content/plugins/smart-compress/img/portait-webp-600x592.webp" alt="" width="100%">
-                            <figcaption><b>X2</b> <?= round(filesize(WP_CONTENT_DIR . '/plugins/smart-compress/img/portait-webp-600x592.webp') / 1024) ?>Ko</figcaption>
-                        </figure>
-                    </li>
-                    <li>
-                        <figure>
-                            <img src="<?= wp_guess_url() ?>/wp-content/plugins/smart-compress/img/portait-webp-300x296.webp" alt="">
-                            <figcaption><?= round(filesize(WP_CONTENT_DIR . '/plugins/smart-compress/img/portait-webp-300x296.webp') / 1024) ?>Ko</figcaption>
-                        </figure>
-                    </li>
-                    <li>
-                        <figure>
-                            <img src="<?= wp_guess_url() ?>/wp-content/plugins/smart-compress/img/portait-webp-150x148.webp" alt="">
-                            <figcaption><?= round(filesize(WP_CONTENT_DIR . '/plugins/smart-compress/img/portait-webp-150x148.webp') / 1024) ?>Ko</figcaption>
-                        </figure>
-                    </li>
-                    <li>
-                        <figure>
-                            <img src="<?= wp_guess_url() ?>/wp-content/plugins/smart-compress/img/portait-webp-75x74.webp" alt="">
-                            <figcaption><?= round(filesize(WP_CONTENT_DIR . '/plugins/smart-compress/img/portait-webp-75x74.webp') / 1024) ?>Ko</figcaption>
-                        </figure>
-                    </li>
-                </ul>
-            </div>
-        </div>
-        -->
-
-<!--         <div class="sc-images">
-            <div class="images">
-                <h3>Upload</h3>
-
-                <input type="file">
-
-                <figure>
-                    <img src="<?= wp_guess_url() ?>/wp-content/plugins/smart-compress/img/landscape1-300x296.jpg" alt="">
-                    <figcaption><?= round(filesize(WP_CONTENT_DIR . '/plugins/smart-compress/img/landscape1-300x296.jpg') / 1024) ?>Ko</figcaption>
-                </figure>
-
-                <div class="ranges">
-                    Quality
-                    <input type="range">
-                    Radius
-                    <input type="range">
-                    Sigma
-                    <input type="range">
-                </div>
-
-                <figure>
-                    <img src="<?= wp_guess_url() ?>/wp-content/plugins/smart-compress/img/landscape1-webp-300x296.webp" alt="">
-                    <figcaption><?= round(filesize(WP_CONTENT_DIR . '/plugins/smart-compress/img/landscape1-webp-300x296.webp') / 1024) ?>Ko</figcaption>
-                </figure>
-
-                <button class="sc-btn btn-assets">Download</button>
-            </div>
-        </div> -->
-
         <div class="sc-dialog">
             <div class="sc-dialog-box">
                 <h3 class="title">Purging</h3>
@@ -336,6 +175,32 @@ $nonce = wp_create_nonce('sm_nonce');
             </div>
 
         </div>
+
+        <div class="sc-image">
+            <h1>Upload and convert image</h1>
+
+            <div class="sc-image-image">
+                <img src="<?= wp_guess_url() ?>/wp-content/plugins/smart-compress/img/landscape-webp-600x592.webp" alt="">
+            </div>
+
+            <div class="sc-image-control">
+                <div class="sc-image-action">
+                    <button class="sc-image-upload">upload</button>
+                    <button class="sc-image-download">download</button>
+                </div>
+
+                <div class="sc-image-quality">
+                    <label>Qualité</label>
+                    <input type="range">
+
+                    <label>Sharpe</label>
+                    <input type="range">
+                    <input type="range">
+                </div>
+
+            </div>
+        </div>
+
     <?php else : ?>
         <div class="sc-content">
             <header>

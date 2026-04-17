@@ -29,3 +29,13 @@
           padding: 1.6rem 2.4rem;
     }
 }
+
+.btn-1{
+    border:2px solid red
+}
+
+.btn-2{
+    background: none;
+    color: var(--color-text);
+    border:2px solid var(--color-text);
+}

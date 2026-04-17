@@ -20,15 +20,15 @@
  */
 
 
-define('ENV_LOCAL', ( false !== strrpos( $_SERVER[ 'SERVER_NAME' ], '.code' ) ) );
-define('ENV_PREPROD_LONSDALE', ( false !== strrpos( $_SERVER[ 'HTTP_HOST' ], '.preprod8.lonsdale.fr' ) ) );
-define('ENV_PREPROD_BT', ( false !== strrpos( $_SERVER[ 'HTTP_HOST' ], 'euw3.pub.nbyt.fr' ) ) );
-define('ENV_PROD', ( !ENV_LOCAL && !ENV_PREPROD_LONSDALE  && !ENV_PREPROD_BT ) );
+define('ENV_LOCAL', (false !== strrpos($_SERVER['SERVER_NAME'], '.code')));
+define('ENV_PREPROD_LONSDALE', (false !== strrpos($_SERVER['HTTP_HOST'], '.preprod8.lonsdale.fr')));
+define('ENV_PREPROD_BT', (false !== strrpos($_SERVER['HTTP_HOST'], 'euw3.pub.nbyt.fr')));
+define('ENV_PROD', (!ENV_LOCAL));
 
 
 if (ENV_PROD) {
     /** Enable W3 Total Cache */
-    }
+}
 
 // ** Réglages MySQL - Votre hébergeur doit vous fournir ces informations. ** //
 /** Nom de la base de données de WordPress. */
@@ -108,7 +108,7 @@ if (ENV_LOCAL) {
 
 define('DISALLOW_FILE_EDIT', false);
 
-define( 'AUTOMATIC_UPDATER_DISABLED', false );
+define('AUTOMATIC_UPDATER_DISABLED', false);
 
 if (ENV_PROD) {
     define('DISALLOW_FILE_MODS', true);
@@ -117,11 +117,11 @@ if (ENV_PROD) {
 if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https')
     $_SERVER['HTTPS'] = 'on';
 
-$is_ssl = filter_var( empty( $_SERVER[ 'HTTPS' ] ) ? false : $_SERVER[ 'HTTPS' ], FILTER_VALIDATE_BOOLEAN );
-if ( isset( $_SERVER[ 'HTTP_HOST' ] ) ) {
+$is_ssl = filter_var(empty($_SERVER['HTTPS']) ? false : $_SERVER['HTTPS'], FILTER_VALIDATE_BOOLEAN);
+if (isset($_SERVER['HTTP_HOST'])) {
     /* Custom WordPress URL. */
-    define( 'WP_SITEURL', sprintf( '%s://%s', $is_ssl ? 'https' : 'http', $_SERVER[ 'HTTP_HOST' ] ) );
-    define( 'WP_HOME', sprintf( '%s://%s', $is_ssl ? 'https' : 'http', $_SERVER[ 'HTTP_HOST' ] ) );
+    define('WP_SITEURL', sprintf('%s://%s', $is_ssl ? 'https' : 'http', $_SERVER['HTTP_HOST']));
+    define('WP_HOME', sprintf('%s://%s', $is_ssl ? 'https' : 'http', $_SERVER['HTTP_HOST']));
     /* If SSL */
     if ($is_ssl) {
         define('FORCE_SSL_LOGIN', true);

@@ -1,4 +1,5 @@
 
 <div class="card-news">
-   <?= component::picture($args) ?>
+   <a href="/contact">
+   <?= component::picture($args) ?></a>
 </div>

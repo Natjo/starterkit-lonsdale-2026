@@ -2,7 +2,7 @@
     position: fixed;
     z-index: 100;
     width: 100%;
-    mix-blend-mode: darken;
+    //mix-blend-mode: darken;
     height: var(--header-height);
     color: var(--color-1);
     padding-inline: var(--ctr-offset);

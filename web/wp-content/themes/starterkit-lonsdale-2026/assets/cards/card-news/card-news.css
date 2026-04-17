@@ -1,2 +1,2 @@
-.card-news{img{aspect-ratio:1;height:100%;-o-object-fit:cover;object-fit:cover;width:100%}}
+.card-news{a{display:block}img{aspect-ratio:1;height:100%;-o-object-fit:cover;object-fit:cover;width:100%}&.horizontal{opacity:.5}&.reverse{rotate:80deg}&.theme-pink{border:2px solid red}}
 /*# sourceMappingURL=styles.css.map */

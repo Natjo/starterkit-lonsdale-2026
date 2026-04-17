@@ -1,0 +1,18 @@
+/* 
+ bundles cssƒ
+*/
+
+/* components */
+@import "components/intro/intro.css";
+@import "components/picto/picto.css";
+@import "components/slider/slider.css";
+@import "components/tag/tag.css";
+
+/* cards */
+//@import "cards/card-news/card-news.css" critical;
+
+/* strates */
+//@import "strates/strate-slider/strate-slider.css";
+/* @import "strates/strate-text/strate-text.css"; */
+
+/* modules */

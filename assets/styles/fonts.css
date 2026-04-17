@@ -1,35 +1,35 @@
 /* BouyguesRead */
 @font-face {
     font-family: "BouyguesRead";
-    src: url(fonts/BouyguesRead-Light.woff2) format("woff2");
+    src: url(./fonts/BouyguesRead-Light.woff2) format("woff2");
     font-weight: 300;
     font-style: normal;
     font-display: swap;
 }
 @font-face {
     font-family: "BouyguesRead";
-    src: url(fonts/BouyguesRead-Regular.woff2) format("woff2");
+    src: url(./fonts/BouyguesRead-Regular.woff2) format("woff2");
     font-weight: 400;
     font-style: normal;
     font-display: swap;
 }
 @font-face {
     font-family: "BouyguesRead";
-    src: url(fonts/BouyguesRead-Medium.woff2) format("woff2");
+    src: url(./fonts/BouyguesRead-Medium.woff2) format("woff2");
     font-weight: 500;
     font-style: normal;
     font-display: swap;
 }
 @font-face {
     font-family: "BouyguesRead";
-    src: url(fonts/BouyguesRead-Semibold.woff2) format("woff2");
+    src: url(./fonts/BouyguesRead-Semibold.woff2) format("woff2");
     font-weight: 600;
     font-style: normal;
     font-display: swap;
 }
 @font-face {
     font-family: "BouyguesRead";
-    src: url(fonts/BouyguesRead-Bold.woff2) format("woff2");
+    src: url(./fonts/BouyguesRead-Bold.woff2) format("woff2");
     font-weight: 700;
     font-style: normal;
     font-display: swap;
@@ -38,7 +38,7 @@
 /* BouyguesSpeak */
 @font-face {
     font-family: "BouyguesSpeak";
-    src: url(fonts/bouygues-speak.woff2) format("woff2");
+    src: url(./fonts/bouygues-speak.woff2) format("woff2");
     font-weight: 700;
     font-style: normal;
 }

@@ -1,24 +1,14 @@
 .strate-slider {
-   background-color: green;
-
-    .grid {
-        grid-column: full;
-    }
-
     .slider {
         --nb: 2;
-        --gap: 0px;
-       
+        grid-column: ctr-sm;
     }
 
-    .slider-btn {
-        display: none;
-    }
+
 
     .card-news {
         img {
-            height: 100vh
+            height: 400px
         }
-
     }
 }

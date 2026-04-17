@@ -1,0 +1,10 @@
+{
+  "components": [
+    "components/intro/intro.css",
+    "components/picto/picto.css",
+    "components/slider/slider.css",
+    "components/tag/tag.css"
+  ],
+  "cards": [],
+  "strates": []
+}

@@ -1,4 +1,5 @@
 <?php
+
 define('THEME_DIR', get_template_directory() . '/');
 define('THEME_ASSETS', get_template_directory_uri() . '/assets/'); //
 define('THEME_URL', get_template_directory_uri() . '/');
@@ -28,3 +29,4 @@ function get_tpl()
 {
     include("inc/tpl.php");
 }
+

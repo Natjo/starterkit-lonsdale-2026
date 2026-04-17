@@ -1,0 +1,112 @@
+[
+    {
+        "id": "instagram",
+        "width": "40",
+        "height": "40"
+    },
+    {
+        "id": "facebook",
+        "width": "40",
+        "height": "40"
+    },
+    {
+        "id": "linkedin",
+        "width": "40",
+        "height": "40"
+    },
+    {
+        "id": "tiktok",
+        "width": "40",
+        "height": "40"
+    },
+    {
+        "id": "x",
+        "width": "40",
+        "height": "40"
+    },
+    {
+        "id": "youtube",
+        "width": "40",
+        "height": "40"
+    },
+    {
+        "id": "copy",
+        "width": "40",
+        "height": "40"
+    },
+    {
+        "id": "whatsapp",
+        "width": "40",
+        "height": "40"
+    },
+    {
+        "id": "mail",
+        "width": "40",
+        "height": "40"
+    },
+    {
+        "id": "top",
+        "width": "17",
+        "height": "17"
+    },
+    {
+        "id": "email",
+        "width": "23",
+        "height": "24"
+    },
+    {
+        "id": "quote",
+        "width": "40",
+        "height": "40"
+    },
+    {
+        "id": "comment",
+        "width": "40",
+        "height": "40"
+    },
+    {
+        "id": "chevron",
+        "width": "8",
+        "height": "13"
+    },
+    {
+        "id": "clock",
+        "width": "17",
+        "height": "21"
+    },
+    {
+        "id": "download",
+        "width": "24",
+        "height": "24"
+    },
+    {
+        "id": "caret",
+        "width": "13",
+        "height": "8"
+    },
+    {
+        "id": "valid",
+        "width": "12",
+        "height": "9"
+    },
+    {
+        "id": "prev",
+        "width": "7",
+        "height": "11"
+    },
+    {
+        "id": "next",
+        "width": "7",
+        "height": "11"
+    },
+    {
+        "id": "logo",
+        "width": "230",
+        "height": "38"
+    },
+    {
+        "id": "logo-footer",
+        "width": "80",
+        "height": "78"
+    }
+]

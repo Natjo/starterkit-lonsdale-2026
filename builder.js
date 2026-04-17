@@ -8,29 +8,93 @@ const postcssExtendRule = require('postcss-extend-rule');
 const autoprefixer = require('autoprefixer');
 const cssnano = require('cssnano');
 const babel = require('@babel/core');
+const esbuild = require('esbuild');
 const watch = require('node-watch');
 const { optimize } = require('svgo');
 
 const src = 'assets/';
-const dist = `web/wp-content/themes/${process.env.WP_THEME_NAME}/`;
+const themeName = process.env.WP_THEME_NAME || 'starterkit-lonsdale-2026';
+const dist = `web/wp-content/themes/${themeName}/`;
 const fromCss = "app.css";
 const toCss = "styles.css";
-
+const bundlesDir = "bundles";
+const bundleSourceFile = "bundles.css";
+const bundleEntries = ["components", "cards", "strates"];
+// modules/ CSS is merged into components — no separate modules.css output
+const bundleAliases = { "modules": "components" };
 let date = new Date();
 let version = `${date.getMonth()}${date.getDay()}${date.getHours()}${date.getMinutes()}`;
 let hasError = false;
 let array = [];
-
+let bundleImports = bundleEntries.reduce((acc, entry) => {
+    acc[entry] = [];
+    return acc;
+}, {});
+let moduleMapJSON = "{}";
+const isBundleSourceFile = (relPosixPath = "") => relPosixPath === `assets/${bundleSourceFile}`;
+const createEmptyBundleImports = () => bundleEntries.reduce((acc, entry) => {
+    acc[entry] = [];
+    return acc;
+}, {});
+const hasBundleChanged = (prev = [], next = []) =>
+    prev.length !== next.length || prev.some((value, index) => value !== next[index]);
+const stripCssComments = (cssSource = "") => cssSource
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^\s*\/\/.*$/gm, "");
+const extractImports = (cssSource = "") => {
+    const imports = [];
+    const cleanSource = stripCssComments(cssSource);
+    // Only accept explicit @import directives at line start.
+    cleanSource.replace(/^\s*@import\s+["']([0-9a-z._\/-]+)["']\s*;?/igm, (match, file) => imports.push(file));
+    return [...new Set(imports)];
+};
+const postcssProcessor = postcss(
+    [
+        cssnano,
+        postcssExtendRule,
+        postcssGlobalData({ files: [`${src}styles/customMedias.css`] }),
+        cssCustomMedia(),
+        autoprefixer({ add: true })
+    ]);
 const core = {
+    generateModuleMap() {
+        const loadableRoots = ["modules", "strates"];
+        const map = {};
+
+        for (const root of loadableRoots) {
+            const rootDir = path.join(__dirname, "assets", root);
+            if (!fs.existsSync(rootDir)) continue;
+
+            const entries = fs.readdirSync(rootDir);
+            for (const entry of entries) {
+                const entryDir = path.join(rootDir, entry);
+                if (!fs.statSync(entryDir).isDirectory()) continue;
+
+                const jsFile = path.join(entryDir, `${entry}.js`);
+                if (!fs.existsSync(jsFile)) continue;
+
+                const key = `${root}/${entry}`;
+                const rel = `./${root}/${entry}/${entry}.js`;
+                map[key] = rel;
+            }
+        }
+
+        const keys = Object.keys(map).sort();
+        const obj = keys.reduce((acc, k) => { acc[k] = map[k]; return acc; }, {});
+        const nextJSON = JSON.stringify(obj);
+        const changed = nextJSON !== moduleMapJSON;
+        moduleMapJSON = nextJSON;
+        return changed;
+    },
     compile(file, dist_name, ext) {
         if (ext == '.js') {
             try {
-                this.babel(fs.readFileSync(file, 'utf8'), dist_name);
+                this.babel(fs.readFileSync(file, 'utf8'), dist_name, file);
             } catch (error) {
                 hasError = true;
                 console.log(error);
             }
-        } 
+        }
         else if (ext == '.css') {
             const str = fs.readFileSync(file, 'utf8');
             core.postcss(str, (css, map) => {
@@ -66,7 +130,7 @@ const core = {
 
         appcss.replace(/(?<!\/\/)@import[ "']{1,2}([1-9a-z.\/-]+)["']/igm, (match, file) => array.push(file));
         for (let file of [...new Set(array)]) {
-            str +=  fs.readFileSync(`${src}${file}`, 'utf8');
+            str += fs.readFileSync(`${src}${file}`, 'utf8');
         }
 
         str = imports + str;
@@ -76,6 +140,57 @@ const core = {
             fs.writeFile(`${dist}assets/${toCss}.map`, map.toString(), () => true)
         }, toCss);
     },
+    parse_bundle_source() {
+        const sourcePath = `${__dirname}/assets/${bundleSourceFile}`;
+        const nextBundleImports = createEmptyBundleImports();
+        if (!fs.existsSync(sourcePath)) {
+            const changedEntries = bundleEntries.filter((entryName) =>
+                hasBundleChanged(bundleImports[entryName], nextBundleImports[entryName]));
+            bundleImports = nextBundleImports;
+            return changedEntries;
+        }
+
+        const sourceCss = fs.readFileSync(sourcePath, "utf8");
+        const imports = extractImports(sourceCss);
+        for (const file of imports) {
+            const matchedEntry = bundleEntries.find(e => file.startsWith(`${e}/`));
+            const aliasedEntry = !matchedEntry
+                ? Object.entries(bundleAliases).find(([prefix]) => file.startsWith(`${prefix}/`))?.[1]
+                : null;
+            const target = matchedEntry ?? aliasedEntry;
+            if (target) nextBundleImports[target].push(file);
+        }
+        const changedEntries = bundleEntries.filter((entryName) =>
+            hasBundleChanged(bundleImports[entryName], nextBundleImports[entryName]));
+        bundleImports = nextBundleImports;
+        return changedEntries;
+    },
+    write_bundle_manifest() {
+        const manifest = {
+            components: bundleImports.components,
+            cards: bundleImports.cards,
+            strates: bundleImports.strates,
+        };
+        fs.ensureDirSync(`${dist}assets/${bundlesDir}`);
+        fs.writeFileSync(`${dist}assets/${bundlesDir}/css-bundles.json`, JSON.stringify(manifest, null, 2));
+    },
+    bundle_entry(entryName) {
+        let str = "";
+        for (let file of bundleImports[entryName]) {
+            str += fs.readFileSync(`${src}${file}`, "utf8") + "\n";
+        }
+
+        core.postcss(str, (css, map) => {
+            const outPath = `${dist}assets/${bundlesDir}/${entryName}.css`;
+            fs.ensureDirSync(path.dirname(outPath));
+            fs.writeFileSync(outPath, css, () => true);
+            fs.writeFile(`${outPath}.map`, map.toString(), () => true);
+        }, `${entryName}.css`);
+    },
+    bundle_entries_from_source(entries = bundleEntries) {
+        entries.forEach((entry) => core.bundle_entry(entry));
+        core.write_bundle_manifest();
+    },
     dirScan(dir) {
         const recursive = dir => {
             fs.readdirSync(dir).forEach(res => {
@@ -84,9 +199,10 @@ const core = {
                 if (stat && stat.isDirectory()) recursive(file);
                 else if (!/.DS_Store$/.test(file)) {
                     const name = file.replace(`${__dirname}/`, '');
+                    const relPosix = name.replaceAll(path.sep, "/");
                     const filename = path.parse(name).base;
                     const ext = path.extname(filename);
-                    if (filename != fromCss) {
+                    if (filename != fromCss && !isBundleSourceFile(relPosix)) {
                         core.compile(file, dist + name, ext);
                     }
                 }
@@ -104,11 +220,40 @@ const core = {
         }
         removeSelf && fs.rmdirSync(dirPath);
     },
-    babel(result, dest) {
+    babel(result, dest, srcFile = "") {
         let res = "";
 
+        // Bundle assets/app.js into a single common file (static imports only).
+        // Dynamic imports are wrapped in importModule() so esbuild won't glob/bundle them.
+        const normalizedSrcFile = srcFile ? path.normalize(srcFile) : "";
+        const isAppJs =
+            normalizedSrcFile === `assets${path.sep}app.js` ||
+            normalizedSrcFile.endsWith(`${path.sep}assets${path.sep}app.js`);
+
+        if (isAppJs) {
+            const entry = path.isAbsolute(srcFile) ? srcFile : path.resolve(__dirname, srcFile);
+            const moduleMapBanner = `const moduleMap=${moduleMapJSON};`;
+
+            const bundled = esbuild.buildSync({
+                entryPoints: [entry],
+                bundle: true,
+                write: false,
+                platform: "browser",
+                format: "esm",
+                target: ["es2020"],
+                minify: true,
+                legalComments: "none",
+                banner: { js: `${moduleMapBanner}\n` },
+            });
+
+            const code = bundled.outputFiles?.[0]?.text ?? "";
+            fs.ensureDirSync(path.dirname(dest));
+            fs.writeFileSync(dest, code);
+            return;
+        }
+
         result = result.replace(".js", '');
-       
+
         res = result.replace(/(import[ {}'".\/a-zA-Z0-9_,@-]+)(['"])/igm, `$1.js?v=${version}$2`);
 
         result = babel.transform(res, {
@@ -120,14 +265,7 @@ const core = {
         fs.writeFileSync(dest, result);
     },
     postcss(str, func, name) {
-        postcss(
-            [
-                cssnano,
-                postcssExtendRule,
-                postcssGlobalData({ files: [`${src}styles/customMedias.css`] }),
-                cssCustomMedia(),
-                autoprefixer({ add: true })
-            ])
+        postcssProcessor
             .process(str, {
                 from: `assets/${fromCss}`,
                 parser: parser,
@@ -156,9 +294,16 @@ const core = {
 
 core.rmDir(`${dist}${src}`);
 
+core.generateModuleMap();
+// Ensure app.js is bundled against the latest module map.
+core.compile(path.join(__dirname, "assets", "app.js"), path.join(__dirname, dist, "assets", "app.js"), ".js");
 core.dirScan(src);
 
 core.app_styles();
+
+// Build CSS bundles from single source file
+core.parse_bundle_source();
+core.bundle_entries_from_source();
 
 if (hasError) {
     core.display('', 'error');
@@ -166,19 +311,31 @@ if (hasError) {
 }
 
 watch(src, { recursive: true }, (evt, file) => {
-    if (/.DS_Store$/.test(file)) return
- 
-    const isFile = file.indexOf('.') > 0 ? true : false;
-    const filename = path.basename(file);
-    const ext = path.extname(filename);
-    const dist_file = dist + file;
-    const exist = fs.existsSync(dist_file) ? true : false;
+    const relFile = path.isAbsolute(file) ? path.relative(__dirname, file) : file;
+    const relFilePosix = relFile.replaceAll(path.sep, "/");
 
-    if (filename !== fromCss) {
-        if (!fs.existsSync(dist_file)) evt = 'add';
-        if (evt == 'update' || evt == 'add') core.compile(file, dist_file, ext);
+    if (/.DS_Store$/.test(relFile)) return
+
+    const isFile = relFile.indexOf('.') > 0 ? true : false;
+    const filename = path.basename(relFile);
+    const ext = path.extname(filename);
+    const dist_file = path.join(dist, relFile);
+    const exist = fs.existsSync(dist_file) ? true : false;
+    const bundleImportPath = relFilePosix.replace(/^assets\//, "");
+
+    if (filename !== fromCss && !isBundleSourceFile(relFilePosix)) {
+        if (!exist) evt = 'add';
+        if (evt == 'update' || evt == 'add') core.compile(relFile, dist_file, ext);
     } else {
-        core.app_styles(true);
+        if (filename === fromCss) core.app_styles(true);
+    }
+
+    // Regenerate module map when loadable modules/strates change
+    if (ext === ".js" && (/^assets\/modules\//.test(relFilePosix) || /^assets\/strates\//.test(relFilePosix))) {
+        const changed = core.generateModuleMap();
+        if (changed) {
+            core.compile(path.join(__dirname, "assets", "app.js"), path.join(__dirname, dist, "assets", "app.js"), ".js");
+        }
     }
 
     if (exist && evt == 'remove') {
@@ -194,6 +351,27 @@ watch(src, { recursive: true }, (evt, file) => {
             if (found) {
                 core.app_styles(true);
             }
+        }
+    }
+
+    // Rebuild bundles when relevant CSS changes
+    if (ext === '.css') {
+        if (relFilePosix === `assets/${bundleSourceFile}`) {
+            const changedEntries = core.parse_bundle_source();
+            if (changedEntries.length) core.bundle_entries_from_source(changedEntries);
+            else core.write_bundle_manifest();
+        }
+        if (relFilePosix.startsWith("assets/modules/") && bundleImports.components.includes(bundleImportPath)) {
+            core.bundle_entry("components");
+        }
+        if (relFilePosix.startsWith("assets/components/") && bundleImports.components.includes(bundleImportPath)) {
+            core.bundle_entry("components");
+        }
+        if (relFilePosix.startsWith("assets/cards/") && bundleImports.cards.includes(bundleImportPath)) {
+            core.bundle_entry("cards");
+        }
+        if (relFilePosix.startsWith("assets/strates/") && bundleImports.strates.includes(bundleImportPath)) {
+            core.bundle_entry("strates");
         }
     }
 

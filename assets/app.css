@@ -1,3 +1,7 @@
+/* 
+    critical css
+*/
+
 /* styles */
 @import "styles/reset.css";
 @import "styles/variables.css";
@@ -12,18 +16,14 @@
 @import "common/footer/footer.css";
 
 /* modules */
-@import "modules/lenis/lenis.css"
+@import "modules/lenis/lenis.css";
 
 /* components */
-//@import "components/slider/slider.css";
+@import "components/btn/btn.css";
+@import "components/header/header.css";
+@import "components/link/link.css";
+@import "components/title/title.css";
 
-/* cards */
-//@import "cards/card-news/card-news.css";
 
+/* bundles */
 
-/* heros */
-//@import "heros/hero-homepage/hero-homepage.css";
-
-/* strates */
-//@import "strates/strate-text/strate-text.css";
-//@import "strates/strate-slider/strate-slider.css";

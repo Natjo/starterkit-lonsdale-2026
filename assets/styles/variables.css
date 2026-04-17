@@ -4,12 +4,15 @@
 
     --ctr-width: 135rem;
 
+    // text
     --color-text: #25465F;
 
+    // gray
     --color-gray-light: #EFF2F8;
     --color-gray: #ccc;
     --color-gray-dark: #ECECEC;
 
+    // brand
     --color-1: #25465F;
     --color-2: #00A0BD;
     --color-3: #EFF2F8;
@@ -19,7 +22,7 @@
 
 
     --layout:
-        [full] var(--ctr-offset) [fluid ctr ctr-sm ctr-xs] auto [ctr-xs-end ctr-sm-end ctr-end fluid-end] var(--ctr-offset) [full-end];
+        [full] var(--ctr-offset) [fluid ctr ctr-sm center] auto [center-end ctr-sm-end ctr-end fluid-end] var(--ctr-offset) [full-end];
 }
 
 
@@ -47,8 +50,10 @@
         --margin-md: 8rem;
         --margin-lg: 11rem;
 
+        /* layout avec ctr-sm et center*/
+        --ctr-col: calc((var(--ctr-width) - (11) * var(--gap)) / 12 + var(--gap));
         --layout:
-            [full] var(--ctr-offset) [fluid] 1fr [ctr-start] minmax(1vw, calc(var(--ctr-width)/2)) [center] minmax(1vw, calc(var(--ctr-width)/2)) [ctr-end] 1fr [fluid-end] var(--ctr-offset) [full-end];
+            [full] var(--ctr-offset) [fluid] 1fr [ctr-start] var(--ctr-col) [ctr-sm-start] minmax(1vw, calc((var(--ctr-width) - (2 * var(--ctr-col)))/2)) [center] minmax(1vw, calc((var(--ctr-width) - (2 * var(--ctr-col)))/2)) [ctr-sm-end] var(--ctr-col) [ctr-end] 1fr [fluid-end] var(--ctr-offset) [full-end];
     }
 }
 

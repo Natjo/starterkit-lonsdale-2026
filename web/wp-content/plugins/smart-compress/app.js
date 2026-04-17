@@ -204,3 +204,4 @@ function Tips() {
 const myTip = new Tips();
 
 btns_tip.forEach(btn => btn.onclick = () => myTip.toggle(btn))
+

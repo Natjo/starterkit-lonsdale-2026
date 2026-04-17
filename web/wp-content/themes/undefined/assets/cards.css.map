@@ -1,0 +1,1 @@
+{"version":3,"sources":["assets/app.css"],"names":[],"mappings":"AAAA,WACI,EACI,aACJ,CACA,IACI,cAAe,CAEf,WAAY,CACZ,mBAAgB,CAAhB,gBAAgB,CAFhB,UAGJ,CACJ","file":"assets/app.css","sourcesContent":[".card-news {\n    a{\n        display: block;\n    }\n    img{\n        aspect-ratio: 1;\n        width:100%;\n        height: 100%;\n        object-fit: cover\n    }\n}\n"]}

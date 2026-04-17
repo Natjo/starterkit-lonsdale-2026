@@ -2,15 +2,18 @@
 
 class component
 {
-    public static function title($args, $hx, $classes = null)
+    public static function title($args, $hx = 2, $classes = null)
     {
+        if (is_string($args)) {
+            $args = ["title" => $args];
+        }
 
         if (empty($args["title"])) return;
 
         get_template_part('template-parts/components/title', '', [
-            "hx" => $hx,
-            "title" => $args["title"],
-            "center" => (!empty($args["center"]) || !empty($args["title_center"])) ? true : false,
+            "hx"      => $hx,
+            "title"   => $args["title"],
+            "center"  => (!empty($args["center"]) || !empty($args["title_center"])) ? true : false,
             "classes" => $classes
         ]);
     }
@@ -37,22 +40,42 @@ class component
 
     public static function picture($args, $classes = "", $lazy = true, $placeholder = false, $breakpoint = 768)
     {
-        if (empty($args["images"])) return;
+        // Accepts: array $args with "images" key, a direct image ID (int), or a path (string).
+        // "images" can be ["desktop" => id, "mobile" => id], a scalar, or an indexed array.
+        $raw = is_array($args) ? ($args["images"] ?? null) : $args;
 
-        $image = $args["images"];
+        if (!is_array($raw) || !array_key_exists("desktop", $raw) && !array_key_exists("mobile", $raw)) {
+            $raw = ["desktop" => is_array($raw) ? reset($raw) : $raw];
+        }
 
-        if (empty($image["desktop"]) && empty($image["mobile"])) {
+        if (empty($raw["desktop"]) && empty($raw["mobile"])) {
             if ($placeholder) {
-                echo '<picture class="placeholder' . ($classes ?  " " . $classes : "") . '"></picture>';
+                echo '<picture class="placeholder' . ($classes ? " $classes" : "") . '"></picture>';
             }
-        } else {
-            get_template_part('template-parts/components/picture', '',  array_merge($image, [
-                "classes" => $classes,
-                "lazy" => $lazy,
-                "breakpoint" => $breakpoint,
-                "placeholder" => $placeholder,
-            ]));
+            return;
+        }
+
+        $resolve = function ($id, $size) {
+            if (is_string($id) && !is_numeric($id)) {
+                $width = 0; $height = 0;
+                if (preg_match('/(\d+)x(\d+)/', basename($id), $m)) {
+                    [$width, $height] = [(int)$m[1], (int)$m[2]];
+                }
+                return ["src" => $id, "width" => $width, "height" => $height, "alt" => "", "webp" => ""];
+            }
+            $img = lsd_get_thumb((int)$id, $size);
+            if (empty($img[0])) return [];
+            return ["src" => $img[0], "width" => $img[1], "height" => $img[2], "alt" => $img[3], "webp" => hasWebp($img)];
         };
+
+        get_template_part('template-parts/components/picture', '', [
+            "desktop" => !empty($raw["desktop"]) ? $resolve($raw["desktop"], $args["desktop_size"] ?? "full") : [],
+            "mobile" => !empty($raw["mobile"])  ? $resolve($raw["mobile"],  $args["mobile_size"]  ?? "full") : [],
+            "classes" => $classes,
+            "lazy" => $lazy,
+            "breakpoint" => $breakpoint,
+            "placeholder" => $placeholder,
+        ]);
     }
 
     public static function image($image, $size = "full", $classes = "", $lazy = true)
@@ -88,7 +111,7 @@ class component
 
         if ($isLink  && empty($args["link"])) return;
 
-        if (empty($args["link"]["title"])) return;
+        if ($isLink && empty($args["link"]["title"])) return;
 
         get_template_part('template-parts/components/btn', '', [
             "name" =>  $isLink ? "" : $args,
@@ -158,13 +181,14 @@ class component
         get_template_part('template-parts/components/badge', '', $args);
     }
 
-    public static function list($items, $card = "offer", $classes = null)
+    public static function list($items, $card = "card-news", $classes = null)
     {
         if (empty($items)) return;
+        $cardName = str_starts_with((string) $card, "card-") ? $card : "card-" . $card;
 
         $args = [
             "items" => $items,
-            "card" => $card,
+            "card" => $cardName,
             "classes" => $classes
         ];
 
@@ -176,7 +200,7 @@ class component
     public static function card($name, $args)
     {
         global $components;
-        
+
         addStyle($name, "cards");
 
         get_template_part('template-parts/cards/' . $name, null, $args);
@@ -187,7 +211,7 @@ class component
         if (empty($items)) return;
 
         addStyle("slider", "components");
-        
+
         $args = [
             "items" => $items,
             "navigation" => $navigation,

@@ -73,21 +73,33 @@
 .bg-color-1 {
     background-color: var(--color-1);
     color: #fff;
-    --color1: #fff;
-    --color2: var(--color-1);
-    --color3: var(--color-2);
-    --color4: var(--color-3);
-     --color5:#fff;
-    --text: #fff;
+   
 }
-
+.bg-color-2 {
+    background-color: var(--color-2);
+    color: #fff;
+  
+}
 .bg-color-3 {
     background-color: var(--color-3);
+    color:var(--color-text);
 
-    --color1: #fff;
-    --color2: var(--color-3);
-    --color3: var(--color-1);
-    --color4: #fff;
-    --color5: var(--color-3);
-    --text: var(--color-text);
+   
+}
+
+
+/**/
+.ctr-full {
+    --ctr: full;
+}
+
+.ctr-fluid {
+    --ctr: fluid;
+}
+
+.ctr-sm {
+    
+    @media (--breakpoint-lg-up) {
+        --ctr: ctr-sm;
+    }
 }

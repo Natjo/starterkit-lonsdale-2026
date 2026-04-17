@@ -21,13 +21,17 @@
     <meta name='format-detection' content='telephone=no' />
     <meta name="msapplication-tap-highlight" content="no">
 
+    <link rel="preload" href="<?= THEME_ASSETS ?>fonts/BouyguesRead-Regular.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="<?= THEME_ASSETS ?>fonts/BouyguesRead-Bold.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="<?= THEME_ASSETS ?>fonts/bouygues-speak.woff2" as="font" type="font/woff2" crossorigin>
+
     <?php wp_head(); ?>
 
     <?php styles(); ?>
 
-    <link rel="preload" href="<?= THEME_ASSETS ?>fonts/BouyguesRead-Regular.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="preload" href="<?= THEME_ASSETS ?>fonts/BouyguesRead-Bold.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="preload" href="<?= THEME_ASSETS ?>fonts/bouygues-speak.woff2" as="font" type="font/woff2" crossorigin>
+    <?php if (is_page_template('front/page-styleguide.php')) : ?>
+        <link rel="stylesheet" href="<?= THEME_ASSETS ?>styles/styleguide.css">
+    <?php endif ?>
 
     <?php appjs(); ?>
 </head>

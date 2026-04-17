@@ -1,5 +1,6 @@
 .hero-homepage {
     height: 100vh;
+    will-change: transform;
 
     picture {
         width: 100%;

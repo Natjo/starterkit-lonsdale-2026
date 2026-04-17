@@ -1,9 +1,5 @@
-<section  <?= options("strate strate-slider", $args["options"]) ?> data-module="strates/strate-slider" data-context="@visible true">
-  <div class="grid">
-
+<section <?= options("strate strate-slider", $args) ?> data-module="strates/strate-slider" data-context="@visible true">
     <?= component::title($args, 1, "") ?>
 
-    <?= component::slider($args["items"], "card-news"); ?>
-
-  </div>
+    <?= component::slider($args["items"], "card-news", null, true, true); ?>
 </section>

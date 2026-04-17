@@ -1,0 +1,54 @@
+{
+  "container": {
+    "default": "",
+    "choices": {
+      "Full": "ctr-full",
+      "Fluid": "ctr-fluid",
+      "Normal": "",
+      "Petit": "ctr-sm"
+    }
+  },
+  "marginTop": {
+    "default": "",
+    "choices": {
+      "Aucune": "",
+      "Petit": "mt-sm",
+      "Moyen": "mt-md",
+      "Large": "mt-lg"
+    }
+  },
+  "marginBottom": {
+    "default": "",
+    "choices": {
+      "Aucune": "mb-0",
+      "Petit": "mb-sm",
+      "Moyen": "",
+      "Large": "mb-lg"
+    }
+  },
+  "bgColor": {
+    "default": "",
+    "choices": {
+      "Aucune": "",
+      "Vert": "bg-color-1",
+      "Jaune": "bg-color-2",
+      "Orange": "bg-color-3"
+    }
+  },
+  "bgTop": {
+    "default": "",
+    "choices": {
+      "Petit": "pt-sm",
+      "Moyen": "",
+      "Large": "pt-lg"
+    }
+  },
+  "bgBottom": {
+    "default": "",
+    "choices": {
+      "Petit": "pb-sm",
+      "Moyen": "",
+      "Large": "pb-lg"
+    }
+  }
+}

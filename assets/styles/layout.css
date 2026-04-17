@@ -10,6 +10,7 @@ body {
     color: var(--color-text);
     line-height: 1;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 
     &.hasPopin {
         height: 100vh;
@@ -18,6 +19,7 @@ body {
         touch-action: none;
         -webkit-overflow-scrolling: touch;
     }
+
 }
 
 
@@ -38,12 +40,13 @@ body {
     --ctr: ctr;
 
     >* {
-        grid-column: ctr;
+        grid-column: var(--ctr);
     }
 
     --mb: var(--margin-md);
     --pt: var(--margin-md);
     --pb: var(--margin-md);
+
     margin-bottom: var(--mb);
     margin-top: var(--mt, 0);
 
@@ -52,46 +55,29 @@ body {
         padding-bottom: var(--pb);
     }
 
-    --ctr: ctr;
-    --ctr-sm: ctr;
-    --ctr-xs: ctr;
 
-    @media (--breakpoint-md-up) {
-        &.ctr-sm {
-            --ctr: ctr-sm;
-        }
 
-        &.ctr-xs {
-            --ctr: ctr-sm;
-        }
-    }
-
-    @media (--breakpoint-lg-up) {
-        &.ctr-sm {
-            --ctr: ctr-sm;
-        }
-
-        &.ctr-xs {
-            --ctr: ctr-xs;
-        }
-    }
-
-    @media (--breakpoint-xl-up) {
-        &.ctr-xs {
-            --ctr: ctr-xs;
-        }
-    }
 }
 
 .grid {
     display: grid;
-    grid-template-columns:
-        [full fluid ctr] 1fr [ctr-sm] 1fr [ctr-xs] 1fr 1fr [left-sm] 1fr [left] 1fr [center] 1fr [right] 1fr 1fr 1fr [ctr-xs-end]1fr[ctr-sm-end] 1fr[ctr-end fluid-end full-end];
-
+    grid-template-columns: repeat(12, 1fr);
     column-gap: var(--gap);
     align-content: start;
 
     >* {
-        grid-column: var(--ctr);
+        grid-column: 1/-1;
     }
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }

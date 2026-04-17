@@ -4,7 +4,13 @@ Template Name: Homepage
 */
 
 ?>
+<?php 
+/**
+ * Do not remove
+ * need to get styles from module/strates/components
+ */
 
+?>
 <?php get_template_part('template-parts/general/block', 'header_nav'); ?>
 
 <main>

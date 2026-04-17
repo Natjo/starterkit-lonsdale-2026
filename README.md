@@ -1,10 +1,55 @@
-# Installation  
+# Starter kit
 
-****
+## CSS/JS – principe de build & chargement
 
-## Docker wordpress:6.0.2-php8.0-fpm / node:14 / mysql@5.7 / composer / nginx / sonarqube / postgres
+Ce starterkit met en place un chargement CSS optimisé, basé sur une **collecte des styles utilisés** pendant le rendu PHP.
 
-Starter kit
+### Collecte des styles (PHP)
+
+- Les pages utilisent `get_tpl()` en fin de template (`web/wp-content/themes/.../inc/tpl.php`).
+- `header.php` démarre un buffer (`ob_start()`), puis la page est ré-inclus dans le template via `get_tpl()`.
+- Les helpers `hero()` / `strate()` / `component::card()` appellent `addStyle($name, $folder)` pour déclarer les CSS nécessaires.
+
+### CSS critique inline (head)
+
+Dans `front/methods.php` → `styles()` :
+
+- `assets/styles.css` (issu de `assets/app.css`) est **inliné** dans `<style id="critical-css">`.
+- Le CSS du **hero de la page** (dossier `assets/heros/...`) est ajouté dans **la même balise** (pas de requête réseau).
+
+### Bundles CSS (components/cards/strates)
+
+Pour éviter trop de requêtes, on génère des bundles pilotés par des fichiers *entry* :
+
+- `assets/components.css`
+- `assets/cards.css`
+- `assets/strates.css`
+- `assets/modules.css`
+
+Le chargement se fait **uniquement si** le groupe est demandé par `addStyle()`, avec `preload` puis `stylesheet`, dans l’ordre :
+**modules → components → cards → strates**.
+
+### Manifest bundles (bundle vs on-demand)
+
+Le builder génère `assets/css-bundles.json` dans le thème compilé.
+
+Ce manifest liste, par dossier (`modules/components/cards/strates`), quels fichiers `assets/<folder>/<name>/<name>.css` sont inclus dans le bundle.
+
+Règle côté PHP (`addStyle()`):
+
+- si un fichier est listé dans le manifest → on charge **le bundle** (`<folder>.css`)
+- sinon → on charge **le fichier on-demand** `assets/<folder>/<name>/<name>.css`
+
+### Builder (Node)
+
+Le script `builder.js` :
+
+- compile les `@import` de `assets/app.css` → `assets/styles.css`
+- compile chaque CSS individuel (postcss + cssnano)
+- compile les bundles `modules.css/components.css/cards.css/strates.css` en résolvant leurs `@import`
+- écrit le manifest `assets/css-bundles.json` (utilisé par `addStyle()`)
+
+## Configuration
 
 ### Configuration
 
@@ -59,31 +104,10 @@ et truster les certificats pour Chrome et Safari
 .docker/run.sh
 ```
 
-le script coupe et supprime les containers actifs et lance docker-compose up -d
-
-5 containers vont être créés et vont communiquer entre eux :
-
-wordpress:6.0.2-php8.0-fpm / node:14 / mysql@5.7 / composer / nginx
-
-**sur wordpress:6.0.2-php8.0-fpm :** wp-cli est installé, entrer dans le container : (${APP_NAME} est renseigné dans .docker/.env)
-```
-docker exec -it ${APP_NAME}-wp bash
-```
-puis se référer aux commands https://developer.wordpress.org/cli/commands/
-```
-wp-cli --info
-```
 
 Le dossier du theme sera renommé conformément à la config dans .docker/.env
 **Attention à modifier le .gitignore en conséquence pour versionner le dossier du theme**
 
-**sur node:14 :** yarn est installé, le container lance l'install et le run dev au lancement
-
-**sur composer :** ce container permettra l'utilisation de bedrock par la suite https://roots.io/bedrock/
-
-**sur nginx :** gestion du https : ports 80 et 443
-
-Pour les services wordpress et nginx, les config se trouvent respectivement dans les rep .docker/nginx et .docker/wordpress
 
 Editer la feuille CSS **web/wp-content/themes/[default ou ${WP_THEME_NAME}]/style.css** : changer l'entête
 
@@ -97,121 +121,11 @@ Text Domain: default
 */
 ```
 
-pour couper les containers
-```
-.docker/stop.sh
-```
-
-
-
-
-
-
-### Commandes docker
-#### Voir tous les conteneurs
-```
-docker ps -a
-```
-
-#### Arrêter tous les docker conteneurs
-```
-docker container stop $(docker container ls -aq)
-```
-
-#### Supprimer tous docker conteneurs
-```
-docker container rm $(docker container ls -aq)
-```
-
-#### Supprimer tous les conteneurs ET toutes les images
-```
-docker rm -v $(docker ps -a -q)
-docker rmi -f $(docker images -q)
-```
-
-#### Voir tous les conteneurs docker-compose
-```
-docker-compose ps
-```
-
-#### Arrêter tous les docker-compose conteneurs
-```
-docker-compose stop
-```
-
-#### Arrêter et supprimer tous les docker-compose conteneurs
-```
-docker-compose down
-```
-
-#### Clean up docker compose
-```
-docker-compose rm -v
-```
-
-#### Builder un container à nouveau si changements
-```
-docker-compose up -d --force-recreate --build
-```
-
-#### Rentrer dans un shell à l'intérieur du conteneur
-```
-docker exec -it [container] /bin/bash
-```
-
-#### Imprimer les logs du conteneur docker
-```
-docker logs [container_name || container_id] -f
-```
-
-
 ## Wordpress Administration
 ```
 Dans apparence séléctionner le nouveau theme
 ```
 
-## Process deploiement automatique
-
-### 1 - Pour activer la CI/CD
-Renommez le fichier .gitlab-ci-sample.yml en .gitlab-ci.yml
-
-### 2 - ticket bearsteck
-```
-Bonjour
-
-Pouvez-vous :
-- Créer un environnement de préprod "[projet].preprod.lonsdale.io" sur "lonsdale-preprod.ovh.bearstech.com".
-- Créer un environnement de prod "nom de domaine" sur "lonsdale.ovh.bearstech.com".
-- Mettre en place une protection htaccess sur la preprod
-- Activer HTTPS via lets encrypt.
-- Ajouter ces Variables d'environnement pour que nous puissions y accéder depuis le code php (pouvez-vous remplacer les "XXXX" par la valeur correspondante que vous connaitrez lors de la création de l'environnement)
-
-° MYSQL_DATABASE=XXXXX
-° MYSQL_USER=XXXXX
-° MYSQL_PASSWORD=XXXXX
-° MYSQL_HOST=127.0.0.1
-
-- Ajouter cette clé pour l'accès au serveur "lonsdale-preprod.ovh.bearstech.com" ?
-ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC06uGrpswAZrIpRQfiAxOrGiuLZguefwzyljyL4VPlBo+YPNl7vcJB3NeQ2DllWH7khHCkYHk0+RoXL2mRembUlfMwT5+CZyDRuD26QAPwVFBRVqOuZW+WAP0XK9+prMJobQqtV7B0JcrzRLTiLZ3lcCtPqnuJEWEJ3mTTMCmD53Htnkh7w1t0arEaXedBDkQ4LXqbNCjz8PU1lxDf5V/bzoDGGTNBHW3bEqNEUF8KqRqDbh8vDE4JwVWalR5ypZdH0dfcAjG6YLD+fi+MnqMOjMjZSWmj6PNVe537zPXwGiqPCwHl7eVrHA0+dUVQ1cRAJfM7HIOzIqR6j/JxLkc7 deploy@lonsdale.fr
-
-Merci
-```
-### 3 - gitlab
-
-Télécharger https://projects.lonsdale.fr/#/files/7047136, copier contenu clé privé et la mettre dans la var SSH_KEY
-
-Dans Settings > CI / CD > Variables, ajouter: (key / value)
-PP_DOCROOT = root
-PP_SSH_SERVER = lonsdale-preprod.ovh.bearstech.com
-PP_SSH_USER = [le user du projet]
-SSH_KEY = CLE_PRIVEE_DU_FICHIER_TELECHARGE
-SONAR_TOKEN = [ VALEUR à récupérer ici https://projects.lonsdale.fr/#/notebooks/1036788?catid=0 ]
-
-Dans le repo à la racine: .gitlab-ci.ym:
-décommenté de la ligne 7 à 22
-
-Créer une branche preprod et la protéger
-settings > repository > Protected Branches (mettre maintainers dans selects) 
 
 ### 4 - installation de la preprod
 
@@ -254,40 +168,4 @@ ssh user: [le user du projet]
 ssh key: user key id_rsa  
 
 
-### 6 - Configuration/Indexation Elasticsearch en local
 
-### a. Configuration
-Pour configurer Elasticsearch la première fois en local, il faut :
-
-- lancer cette commande (une fois le docker lancé):
-```
-docker exec -it elasticsearch /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic
-```
-
-- Bien récupérer le password qui est généré par cette commande et le mettre dans les variable d'environnement du docker de cette façon (dans le .env) :
-
-```
-ELASTICSEARCH_URL=http://elasticsearch:9200
-ELASTICSEARCH_USERNAME=elastic
-ELASTICSEARCH_PASSWORD=MOT_DE_PASS_GENERE_PRECEDEMENT 
-```
-
-- Enfin relancer docker
-
-### b. Indexation
-
-Pour créer et remplir les index il faut aller dans le BO wordpress (menu Elasticsearch)
-
-#### Pour l'index des Employeurs :
-- Cliquer sur "Créer l'index"
-- Lancer le script d'import manuelement avec cette commande :
-```
-docker exec -it biep-v2-wp php /var/www/html/wp-content/themes/biep/lib/elasticsearch/crons/updateEmplyeursIndex.php
-```
-
-#### Pour l'index des Offres :
-- Cliquer sur "Créer l'index"
-- Lancer le script d'import manuelement avec cette commande :
-```
-docker exec -it biep-v2-wp php /var/www/html/wp-content/themes/biep/lib/elasticsearch/crons/updateOffersIndex.php
-```

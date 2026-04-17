@@ -1,7 +1,8 @@
 .strate-text {
     height: 50vh;
     align-content: center;
-
+    will-change: transform;
+    
     .intro { 
         text-align: center;
         font-size: 4rem;

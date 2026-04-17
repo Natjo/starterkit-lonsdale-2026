@@ -1,3 +1,23 @@
 .title {
   
 }
+
+.title-1 {
+    font-size: 3.2rem;
+    font-weight: 700;
+    line-height: 1.15;
+    font-family: var(--font-2);
+}
+
+.title-2 {
+    font-size: 2.8rem;
+    font-weight: 700;
+    line-height: 1.15;
+}
+
+.intro {
+    font-size: 2rem;
+    font-weight: 400;
+    line-height: 1.15;
+    font-family: var(--font-2);
+}
