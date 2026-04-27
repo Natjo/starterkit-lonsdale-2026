@@ -1,6 +1,13 @@
 const _coreScriptUrl = document.currentScript?.src || '';
 const _coreBaseUrl = _coreScriptUrl.replace(/core\.js(?:\?.*)?$/, '');
-const _iconsUrl = `${_coreBaseUrl}img/icons.svg`;
+const _iconsUrl = (() => {
+    // `icons.svg` lives in theme `/assets/img/`, not in `/front/stylequide/img/`.
+    // Resolve relative to this script URL for portability (dev/prod domains).
+    try {
+        if (_coreScriptUrl) return new URL('../../assets/img/icons.svg', _coreScriptUrl).toString();
+    } catch (_) { /* noop */ }
+    return `${_coreBaseUrl}../../assets/img/icons.svg`;
+})();
 
 class UiSummary extends HTMLElement {
     connectedCallback() {
@@ -45,6 +52,7 @@ class SgPart extends HTMLElement {
         const label   = this.getAttribute('label')   || '';
         const name    = this.getAttribute('name')    || '';
         const type    = (this.getAttribute('type') || '').trim().toLowerCase();
+        const actionAttr = (this.getAttribute('action') || '').trim();
         const tagAttr = this.getAttribute('tag') || '';
         const tags = tagAttr
             .split(',')
@@ -56,7 +64,19 @@ class SgPart extends HTMLElement {
         const wrapperClass = cols ? `sg-part ${cols}` : 'sg-part';
         const classes = JSON.parse(this.getAttribute('classes') || '[]');
         const selects = JSON.parse(this.getAttribute('selects') || '[]');
-        const content = this.innerHTML;
+        let content = this.innerHTML;
+        let actionHtml = '';
+        const actionKey = actionAttr && /^[a-z0-9_-]+$/i.test(actionAttr) ? actionAttr : '';
+        if (actionKey) {
+            const tmp = document.createElement('div');
+            tmp.innerHTML = content;
+            const actionEl = tmp.querySelector(`[data-sg-action="${actionKey}"]`);
+            if (actionEl) {
+                actionHtml = actionEl.outerHTML;
+                actionEl.remove();
+                content = tmp.innerHTML;
+            }
+        }
         const summaryName = (type === "style" || type === "component") ? "" : ` <small>${name}</small>`;
         const summaryTags = type === "component" && tags.length
             ? ` <span class="sg-summary-tags">${tags.map((tag) => `<small class="sg-summary-tag">${tag}</small>`).join('')}</span>`
@@ -93,11 +113,65 @@ class SgPart extends HTMLElement {
         const details = document.createElement('details');
         details.className = 'sg-details sg-strate-header';
         details.id = `sg-${name}`;
-        details.innerHTML = `
-            <ui-summary level="h3">${label}${summaryName}${summaryTags}</ui-summary>
-            ${optionsHtml}
-            ${full ? content : `<div class="${wrapperClass}">${content}</div>`}
-        `;
+        if (actionHtml) {
+            details.innerHTML = `
+                <summary>
+                    <h3 class="sg-h3">${label}${summaryName}${summaryTags}</h3>
+                    <div class="sg-summary-right">
+                        <div class="sg-summary-actions">${actionHtml}</div>
+                        <svg class="icon" width="20" height="20" aria-hidden="true" viewBox="0 0 20 20">
+                            <use href="${_iconsUrl}#caret"></use>
+                        </svg>
+                    </div>
+                </summary>
+                ${optionsHtml}
+                ${full ? content : `<div class="${wrapperClass}">${content}</div>`}
+            `;
+
+            // Prevent a click on actions from toggling <details>. For forms, submit programmatically.
+            const summaryEl = details.querySelector('summary');
+            const actionsEl = summaryEl?.querySelector('.sg-summary-actions');
+            if (actionsEl) {
+                actionsEl.addEventListener('click', (event) => {
+                    const target = event.target;
+                    if (!(target instanceof Element)) return;
+                    if (!target.closest('form')) return;
+
+                    // Stop summary toggle.
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    const form = target.closest('form');
+                    if (!form) return;
+                    const submitter = target.closest('button, input[type="submit"]');
+
+                    // Submit only when a submit control was clicked.
+                    if (submitter instanceof HTMLElement) {
+                        if (typeof form.requestSubmit === 'function') {
+                            form.requestSubmit(submitter);
+                            return;
+                        }
+
+                        const name = submitter.getAttribute('name');
+                        const value = submitter.getAttribute('value') || '';
+                        if (name) {
+                            const hidden = document.createElement('input');
+                            hidden.type = 'hidden';
+                            hidden.name = name;
+                            hidden.value = value;
+                            form.appendChild(hidden);
+                        }
+                        form.submit();
+                    }
+                }, { capture: true });
+            }
+        } else {
+            details.innerHTML = `
+                <ui-summary level="h3">${label}${summaryName}${summaryTags}</ui-summary>
+                ${optionsHtml}
+                ${full ? content : `<div class="${wrapperClass}">${content}</div>`}
+            `;
+        }
         this.replaceWith(details);
     }
 }
@@ -195,6 +269,98 @@ class SgCode extends HTMLElement {
 }
 customElements.define("sg-code", SgCode);
 
+const dedentSnippet = (raw = "") => {
+    const lines = raw.replace(/\t/g, "    ").split("\n");
+    while (lines.length && lines[0].trim() === "") lines.shift();
+    while (lines.length && lines[lines.length - 1].trim() === "") lines.pop();
+    const indents = lines
+        .filter((line) => line.trim() !== "")
+        .map((line) => line.match(/^ */)[0].length);
+    const minIndent = indents.length ? Math.min(...indents) : 0;
+    return lines.map((line) => line.slice(minIndent)).join("\n");
+};
+
+const phpValueFromJson = (value, indent = 0) => {
+    const pad = "    ".repeat(indent);
+    const innerPad = "    ".repeat(indent + 1);
+    if (value === null) return "null";
+    if (typeof value === "boolean") return value ? "true" : "false";
+    if (typeof value === "number") return String(value);
+    if (typeof value === "string") return `"${value.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`;
+    if (Array.isArray(value)) {
+        if (!value.length) return "[]";
+        const items = value.map((v) => `${innerPad}${phpValueFromJson(v, indent + 1)}`);
+        return `[\n${items.join(",\n")}\n${pad}]`;
+    }
+    if (typeof value === "object") {
+        const keys = Object.keys(value);
+        if (!keys.length) return "[]";
+        const entries = keys.map(
+            (k) => `${innerPad}"${k}" => ${phpValueFromJson(value[k], indent + 1)}`
+        );
+        return `[\n${entries.join(",\n")}\n${pad}]`;
+    }
+    return String(value);
+};
+
+class SgSnippet extends HTMLElement {
+    connectedCallback() {
+        let rawCode = dedentSnippet(this.textContent || "");
+
+        if (!rawCode) {
+            // Auto-generate from a parent carrying data-args-json (e.g. .sg-args-var).
+            const source = this.closest("[data-args-json]");
+            if (source) {
+                const jsonAttr = source.getAttribute("data-args-json") || "";
+                try {
+                    const parsed = JSON.parse(jsonAttr);
+                    const varName = (
+                        this.getAttribute("var-name") ||
+                        source.getAttribute("data-args-value") ||
+                        "$args"
+                    ).trim();
+                    rawCode = `${varName} = ${phpValueFromJson(parsed)}`;
+                } catch (_) {
+                    // Invalid JSON: fall through to empty handling below.
+                }
+            }
+        }
+
+        if (!rawCode) {
+            this.replaceWith(document.createTextNode(""));
+            return;
+        }
+
+        const syntax = (this.getAttribute("syntax") || "php").trim().toLowerCase();
+        const showCopy = !this.hasAttribute("no-copy");
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "sg-code-wrap sg-code-wrap--block";
+
+        const pre = document.createElement("pre");
+        pre.className = "sg-code-block";
+
+        const code = document.createElement("code");
+        code.className = "sg-code-inline";
+        code.dataset.syntax = syntax;
+        code.textContent = rawCode;
+        pre.appendChild(code);
+        wrapper.appendChild(pre);
+
+        if (showCopy) {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "sg-copy-btn";
+            button.dataset.copy = rawCode;
+            button.textContent = "Copier";
+            wrapper.appendChild(button);
+        }
+
+        this.replaceWith(wrapper);
+    }
+}
+customElements.define("sg-snippet", SgSnippet);
+
 const DEFAULT_SG_STRATE_OPTIONS_CONFIG = {
     container: {
         default: "",
@@ -227,7 +393,7 @@ const loadSgStrateOptionsConfig = async () => {
     if (sgStrateOptionsConfigPromise) return sgStrateOptionsConfigPromise;
     sgStrateOptionsConfigPromise = (async () => {
         try {
-            const response = await fetch(`${_coreBaseUrl}strate-options.json`);
+            const response = await fetch(`${_coreBaseUrl}strates/strate-options.json`);
             if (!response.ok) return {};
             const json = await response.json();
             return json && typeof json === "object" ? json : {};
@@ -628,13 +794,58 @@ const initBtnCodeBuilder = () => {
         const ajaxUrl = preview?.dataset.ajaxUrl || "";
         const getInput = (name) => builderRoot.querySelector(`[data-param="${name}"]`);
         const argsInput = getInput("args");
+        const argsTypeInput = builderRoot.querySelector('select[data-param="args-type"]');
+        const argsInputsByType = {};
+        builderRoot.querySelectorAll('[data-param="args"][data-args-type]').forEach((input) => {
+            const type = input.getAttribute("data-args-type");
+            if (type) argsInputsByType[type] = input;
+        });
         const classesSelectInput = builderRoot.querySelector('select[data-param="classes"]');
         const classesTextInput = builderRoot.querySelector('input[data-param="classes"]');
+        const nameInput = getInput("name");
+        const widthInput = getInput("width");
+        const heightInput = getInput("height");
+        const linkInput = getInput("link");
+        const sizeSelectInput = builderRoot.querySelector('select[data-param="size"]');
+        const sizeTextInput = builderRoot.querySelector('input[data-param="size"]');
+        const animateInput = getInput("animate");
         const iconInput = getInput("icon");
         const attributesInput = getInput("attributes");
         const hxInput = getInput("hx");
         const itemsInput = getInput("items");
         const cardInput = getInput("card");
+        const lazyInput = getInput("lazy");
+        const placeholderInput = getInput("placeholder");
+        const breakpointInput = getInput("breakpoint");
+
+        const getActiveArgsInput = () => {
+            if (!argsTypeInput) return argsInput;
+            const type = argsTypeInput.value;
+            return argsInputsByType[type] || argsInput;
+        };
+        const readArgsEl = (el) => {
+            if (!el) return "";
+            if (el.getAttribute?.("data-args-value")) {
+                return el.getAttribute("data-args-value").trim();
+            }
+            if ("value" in el && el.tagName !== "SPAN") return (el.value || "").trim();
+            return (el.textContent || "").trim();
+        };
+        const getActiveArgsValue = () => readArgsEl(getActiveArgsInput());
+        const getActiveArgsType = () => argsTypeInput?.value || "";
+
+        const syncArgsInputsVisibility = () => {
+            if (!argsTypeInput) return;
+            const type = argsTypeInput.value;
+            Object.entries(argsInputsByType).forEach(([key, input]) => {
+                const isActive = key === type;
+                input.hidden = !isActive;
+                // Inline style to avoid any CSS overriding `[hidden]`.
+                input.style.display = isActive ? "" : "none";
+            });
+        };
+        syncArgsInputsVisibility();
+        argsTypeInput?.addEventListener("change", syncArgsInputsVisibility);
         const toPhpString = (value = "") => `'${value.replaceAll("\\", "\\\\").replaceAll("'", "\\'")}'`;
         const normalizeParam = (value = "", fallback = "") => {
             const v = value.trim();
@@ -644,6 +855,29 @@ const initBtnCodeBuilder = () => {
             if (/^".*"$/.test(v) || /^'.*'$/.test(v)) return toPhpString(v.slice(1, -1));
             return toPhpString(v);
         };
+
+        let iconState = {
+            name: "youtube",
+            width: "24",
+            height: "24",
+            baseWidth: 24,
+            baseHeight: 24,
+            ratio: 1, // baseHeight / baseWidth
+        };
+        if (componentName === "icon") {
+            const raw = (outputCode.textContent || "").trim();
+            const m = raw.match(/component:icon\(\s*["']([^"']+)["']\s*,\s*([0-9.]+)\s*,\s*([0-9.]+)\s*(?:,|\))/i);
+            if (m) {
+                const baseWidth = Number.parseFloat(m[2]);
+                const baseHeight = Number.parseFloat(m[3]);
+                iconState.name = m[1];
+                iconState.width = String(m[2]);
+                iconState.height = String(m[3]);
+                iconState.baseWidth = Number.isFinite(baseWidth) && baseWidth > 0 ? baseWidth : 24;
+                iconState.baseHeight = Number.isFinite(baseHeight) && baseHeight > 0 ? baseHeight : 24;
+                iconState.ratio = iconState.baseWidth ? (iconState.baseHeight / iconState.baseWidth) : 1;
+            }
+        }
         let previewTimer = null;
         let previewRequestId = 0;
 
@@ -652,6 +886,12 @@ const initBtnCodeBuilder = () => {
                 .map((v) => v.trim())
                 .filter(Boolean)
                 .join(" ");
+        };
+
+        const getMergedSize = () => {
+            const select = typeof sizeSelectInput?.value === "string" ? sizeSelectInput.value.trim() : "";
+            const text = typeof sizeTextInput?.value === "string" ? sizeTextInput.value.trim() : "";
+            return [select, text].filter(Boolean).join(" ").trim();
         };
 
         const updatePreview = () => {
@@ -663,18 +903,71 @@ const initBtnCodeBuilder = () => {
                 body.set("classes", getMergedClasses());
 
                 if (componentName === "btn") {
+                    const activeType = getActiveArgsType();
+                    const argsForPreview = getActiveArgsValue();
                     body.set("action", "sg_preview_btn");
-                    body.set("args", argsInput?.value || "");
+                    body.set("args", argsForPreview);
+                    if (activeType) body.set("args_type", activeType);
+                    if (activeType === "var") {
+                        const varEl = argsInputsByType.var;
+                        const argsJson = varEl?.getAttribute("data-args-json") || "";
+                        if (argsJson) body.set("args_json", argsJson);
+                    }
                     body.set("icon", iconInput?.value || "");
                     body.set("attributes", attributesInput?.value || "");
                 } else if (componentName === "title") {
+                    const activeType = getActiveArgsType();
+                    const argsForPreview = getActiveArgsValue();
                     body.set("action", "sg_preview_title");
-                    body.set("args", argsInput?.value || "");
+                    body.set("args", argsForPreview);
+                    if (activeType) body.set("args_type", activeType);
+                    if (activeType === "var") {
+                        const varEl = argsInputsByType.var;
+                        const argsJson = varEl?.getAttribute("data-args-json") || "";
+                        if (argsJson) body.set("args_json", argsJson);
+                    }
                     body.set("hx", hxInput?.value || "");
                 } else if (componentName === "list") {
                     body.set("action", "sg_preview_list");
                     body.set("items", itemsInput?.value || "");
                     body.set("card", cardInput?.value || "");
+                } else if (componentName === "picture") {
+                    const activeType = getActiveArgsType();
+                    let argsForPreview = getActiveArgsValue();
+                    if (activeType === "src" && !argsForPreview) {
+                        argsForPreview = argsInputsByType.src?.placeholder || "";
+                    }
+                    body.set("action", "sg_preview_picture");
+                    body.set("args", argsForPreview);
+                    body.set("args_type", activeType);
+                    if (activeType === "var") {
+                        const varEl = argsInputsByType.var;
+                        const argsJson = varEl?.getAttribute("data-args-json") || "";
+                        if (argsJson) body.set("args_json", argsJson);
+                    }
+                    body.set("lazy", lazyInput?.checked ? "1" : "0");
+                    body.set("placeholder", placeholderInput?.checked ? "1" : "0");
+                    body.set("breakpoint", breakpointInput?.value || "");
+                } else if (componentName === "picto") {
+                    body.set("action", "sg_preview_picto");
+                    body.set("name", nameInput?.value || "");
+                    body.set("size", getMergedSize());
+                    body.set("animate", animateInput?.checked ? "1" : "0");
+                } else if (componentName === "icon") {
+                    const nameValue = (nameInput?.value || iconState.name || "").trim();
+                    const widthValue = (widthInput?.value || iconState.width || "24").toString().trim();
+                    const heightValue = (heightInput?.value || iconState.height || "24").toString().trim();
+                    body.set("action", "sg_preview_icon");
+                    body.set("name", nameValue);
+                    body.set("width", widthValue);
+                    body.set("height", heightValue);
+                } else if (componentName === "link") {
+                    body.set("action", "sg_preview_link");
+                    const linkJson = linkInput?.getAttribute?.("data-link-json") || "";
+                    if (linkJson) body.set("link_json", linkJson);
+                    body.set("classes", getMergedClasses());
+                    body.set("icon", iconInput?.value || "");
+                    body.set("attributes", attributesInput?.value || "");
                 } else {
                     return;
                 }
@@ -699,7 +992,11 @@ const initBtnCodeBuilder = () => {
         };
 
         const buildCall = () => {
-            const argsValue = normalizeParam((argsInput?.value || "").trim(), "$args");
+            const activeArgsType = getActiveArgsType();
+            const activeArgsRaw = getActiveArgsValue();
+            const argsValue = activeArgsType === "var"
+                ? (activeArgsRaw || "$args")
+                : normalizeParam(activeArgsRaw, "$args");
             const classesValue = normalizeParam(getMergedClasses());
             let signature = "";
 
@@ -714,7 +1011,12 @@ const initBtnCodeBuilder = () => {
             } else if (componentName === "title") {
                 const hxRaw = (hxInput?.value || "").trim();
                 const hxValue = /^\d+$/.test(hxRaw) ? hxRaw : "";
-                const params = [argsValue];
+                const argsRaw = getActiveArgsValue();
+                const argsType = getActiveArgsType();
+                const titleArgsValue = argsType === "var"
+                    ? (argsRaw || "$args")
+                    : normalizeParam(argsRaw, "'Lorem ipsum dolor sit amet'");
+                const params = [titleArgsValue];
                 if (hxValue) params.push(hxValue);
                 if (classesValue) {
                     if (!hxValue) params.push("2");
@@ -731,6 +1033,104 @@ const initBtnCodeBuilder = () => {
                     params.push(classesValue);
                 }
                 signature = `component:list(${params.join(", ")})`;
+            } else if (componentName === "picture") {
+                const argsRaw = getActiveArgsValue();
+                const argsType = getActiveArgsType();
+                let pictureArgsValue;
+                if (argsType === "id") {
+                    pictureArgsValue = /^\d+$/.test(argsRaw) ? argsRaw : "460";
+                } else if (argsType === "src") {
+                    const srcInput = argsInputsByType.src;
+                    const rawInput = argsRaw || srcInput?.placeholder || "img/image.jpg";
+                    // If user already typed a THEME_ASSETS expression, keep it as-is.
+                    if (/^THEME_ASSETS\b/.test(rawInput)) {
+                        pictureArgsValue = rawInput;
+                    } else {
+                        const cleanPath = rawInput
+                            .replace(/^\s*['"]/, "")
+                            .replace(/['"]\s*$/, "")
+                            .replaceAll('"', '\\"');
+                        pictureArgsValue = `THEME_ASSETS . "${cleanPath}"`;
+                    }
+                } else if (argsType === "var") {
+                    pictureArgsValue = argsRaw || "$args";
+                } else {
+                    pictureArgsValue = /^\d+$/.test(argsRaw)
+                        ? argsRaw
+                        : normalizeParam(argsRaw, "$args");
+                }
+                const lazyChecked = !!lazyInput?.checked;
+                const placeholderChecked = !!placeholderInput?.checked;
+                const breakpointRaw = (breakpointInput?.value || "").trim();
+                const breakpointValue = /^\d+$/.test(breakpointRaw) ? breakpointRaw : "";
+
+                const params = [pictureArgsValue];
+                const needLazy = !lazyChecked;
+                const needPlaceholder = placeholderChecked;
+                const needBreakpoint = breakpointValue && breakpointValue !== "768";
+                const needClasses = !!classesValue;
+
+                if (needClasses || needLazy || needPlaceholder || needBreakpoint) {
+                    params.push(classesValue || "''");
+                }
+                if (needLazy || needPlaceholder || needBreakpoint) {
+                    params.push(lazyChecked ? "true" : "false");
+                }
+                if (needPlaceholder || needBreakpoint) {
+                    params.push(placeholderChecked ? "true" : "false");
+                }
+                if (needBreakpoint) {
+                    params.push(breakpointValue);
+                }
+                signature = `component:picture(${params.join(", ")})`;
+            } else if (componentName === "picto") {
+                const nameValue = normalizeParam((nameInput?.value || "").trim(), "'youtube'");
+                const sizeRaw = getMergedSize();
+                const sizeValue = normalizeParam(sizeRaw);
+                const animateChecked = !!animateInput?.checked;
+
+                const params = [nameValue];
+                if (sizeValue) {
+                    params.push(sizeValue);
+                }
+                if (animateChecked) {
+                    if (!sizeValue) params.push("''");
+                    params.push("true");
+                }
+                signature = `component:picto(${params.join(", ")})`;
+            } else if (componentName === "icon") {
+                const nameRaw = (nameInput?.value || iconState.name || "").trim();
+                const widthRaw = (widthInput?.value || iconState.width || "24").toString().trim();
+                const heightRaw = (heightInput?.value || iconState.height || "24").toString().trim();
+                const nameValue = normalizeParam(nameRaw, "'youtube'");
+                const widthValue = /^\d+$/.test(widthRaw) ? widthRaw : "24";
+                const heightValue = /^\d+$/.test(heightRaw) ? heightRaw : "24";
+                const classesValue = normalizeParam(getMergedClasses());
+                const params = [nameValue, widthValue, heightValue];
+                if (classesValue) params.push(classesValue);
+                signature = `component:icon(${params.join(", ")})`;
+            } else if (componentName === "link") {
+                const linkRaw = (linkInput?.value || "").trim();
+                const linkValue = normalizeParam(linkRaw, "$link");
+                const classesValue = normalizeParam(getMergedClasses());
+                const iconValue = normalizeParam((iconInput?.value || "").trim());
+                const attributesValue = normalizeParam((attributesInput?.value || "").trim());
+
+                const params = [linkValue];
+                if (classesValue || iconValue || attributesValue) {
+                    params.push(classesValue || "null");
+                }
+                if (iconValue || attributesValue) {
+                    if (!classesValue && !params[1]) params.push("null");
+                    params.push(iconValue || "null");
+                }
+                if (attributesValue) {
+                    // If we have attributes but no icon/classes, ensure placeholders exist.
+                    if (params.length === 1) params.push("null");
+                    if (params.length === 2) params.push("null");
+                    params.push(attributesValue);
+                }
+                signature = `component:link(${params.join(", ")})`;
             } else {
                 return;
             }
@@ -742,7 +1142,119 @@ const initBtnCodeBuilder = () => {
             updatePreview();
         };
 
-        [argsInput, classesSelectInput, classesTextInput, iconInput, attributesInput, hxInput, itemsInput, cardInput].forEach((input) => {
+        if (componentName === "icon") {
+            let iconSyncing = false;
+
+            const normalizePositiveInt = (value, fallback = 24) => {
+                const n = Number.parseFloat(String(value ?? ""));
+                if (!Number.isFinite(n) || n <= 0) return fallback;
+                return Math.round(n);
+            };
+
+            const setIconBaseDims = (width, height) => {
+                const bw = Number.parseFloat(String(width ?? ""));
+                const bh = Number.parseFloat(String(height ?? ""));
+                iconState.baseWidth = Number.isFinite(bw) && bw > 0 ? bw : 24;
+                iconState.baseHeight = Number.isFinite(bh) && bh > 0 ? bh : 24;
+                iconState.ratio = iconState.baseWidth ? (iconState.baseHeight / iconState.baseWidth) : 1;
+            };
+
+            const setIconCurrentDims = (width, height) => {
+                const w = normalizePositiveInt(width, 24);
+                const h = normalizePositiveInt(height, 24);
+                iconState.width = String(w);
+                iconState.height = String(h);
+                if (widthInput) widthInput.value = String(w);
+                if (heightInput) heightInput.value = String(h);
+            };
+
+            // Init: show the current dimensions in inputs.
+            if (widthInput && !widthInput.value) widthInput.value = iconState.width;
+            if (heightInput && !heightInput.value) heightInput.value = iconState.height;
+
+            const syncHeightFromWidth = () => {
+                if (!widthInput || !heightInput) return;
+                const w = normalizePositiveInt(widthInput.value, normalizePositiveInt(iconState.width, 24));
+                const ratio = Number.isFinite(iconState.ratio) && iconState.ratio > 0 ? iconState.ratio : 1;
+                const h = Math.max(1, Math.round(w * ratio));
+
+                iconSyncing = true;
+                widthInput.value = String(w);
+                heightInput.value = String(h);
+                iconSyncing = false;
+                iconState.width = String(w);
+                iconState.height = String(h);
+            };
+
+            const syncWidthFromHeight = () => {
+                if (!widthInput || !heightInput) return;
+                const h = normalizePositiveInt(heightInput.value, normalizePositiveInt(iconState.height, 24));
+                const ratio = Number.isFinite(iconState.ratio) && iconState.ratio > 0 ? iconState.ratio : 1;
+                const w = Math.max(1, Math.round(h / ratio));
+
+                iconSyncing = true;
+                widthInput.value = String(w);
+                heightInput.value = String(h);
+                iconSyncing = false;
+                iconState.width = String(w);
+                iconState.height = String(h);
+            };
+
+            // Ratio lock: run before the generic buildCall handlers.
+            widthInput?.addEventListener("input", () => {
+                if (iconSyncing) return;
+                syncHeightFromWidth();
+            }, { capture: true });
+            widthInput?.addEventListener("change", () => {
+                if (iconSyncing) return;
+                syncHeightFromWidth();
+            }, { capture: true });
+            heightInput?.addEventListener("input", () => {
+                if (iconSyncing) return;
+                syncWidthFromHeight();
+            }, { capture: true });
+            heightInput?.addEventListener("change", () => {
+                if (iconSyncing) return;
+                syncWidthFromHeight();
+            }, { capture: true });
+
+            builderRoot.querySelectorAll("[data-icon-pick][data-icon-id]").forEach((btn) => {
+                btn.addEventListener("click", () => {
+                    const id = (btn.getAttribute("data-icon-id") || "").trim();
+                    const w = (btn.getAttribute("data-icon-w") || "").trim();
+                    const h = (btn.getAttribute("data-icon-h") || "").trim();
+                    if (id) iconState.name = id;
+                    if (w && h) {
+                        setIconBaseDims(w, h);
+                        setIconCurrentDims(w, h);
+                    }
+                    buildCall();
+                });
+            });
+        }
+
+        [
+            argsInput,
+            argsTypeInput,
+            ...Object.values(argsInputsByType),
+            classesSelectInput,
+            classesTextInput,
+            nameInput,
+            widthInput,
+            heightInput,
+            linkInput,
+            sizeSelectInput,
+            sizeTextInput,
+            animateInput,
+            iconInput,
+            attributesInput,
+            hxInput,
+            itemsInput,
+            cardInput,
+            lazyInput,
+            placeholderInput,
+            breakpointInput,
+        ].forEach((input) => {
             input?.addEventListener("input", buildCall);
             input?.addEventListener("change", buildCall);
         });

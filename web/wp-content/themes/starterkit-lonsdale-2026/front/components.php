@@ -61,6 +61,25 @@ class component
                 if (preg_match('/(\d+)x(\d+)/', basename($id), $m)) {
                     [$width, $height] = [(int)$m[1], (int)$m[2]];
                 }
+                // Try to resolve real dimensions for local files.
+                if ($width === 0 || $height === 0) {
+                    $local_path = null;
+                    $host = $_SERVER['HTTP_HOST'] ?? '';
+                    if ($host && strpos($id, "://" . $host . "/") !== false) {
+                        $local_path = str_replace("https://" . $host . "/", ABSPATH, $id);
+                        $local_path = str_replace("http://" . $host . "/", ABSPATH, $local_path);
+                    } elseif (strpos($id, '/') === 0) {
+                        $local_path = ABSPATH . ltrim($id, '/');
+                    } elseif (file_exists($id)) {
+                        $local_path = $id;
+                    }
+                    if ($local_path && file_exists($local_path)) {
+                        $size_info = @getimagesize($local_path);
+                        if (!empty($size_info)) {
+                            [$width, $height] = [(int)$size_info[0], (int)$size_info[1]];
+                        }
+                    }
+                }
                 return ["src" => $id, "width" => $width, "height" => $height, "alt" => "", "webp" => ""];
             }
             $img = lsd_get_thumb((int)$id, $size);

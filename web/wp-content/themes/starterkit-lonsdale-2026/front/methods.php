@@ -237,15 +237,29 @@ function sg_parse_icon_literal($value)
 function sg_ajax_preview_btn()
 {
     $args_raw = isset($_POST['args']) ? wp_unslash($_POST['args']) : '';
+    $args_type_raw = isset($_POST['args_type']) ? wp_unslash($_POST['args_type']) : '';
+    $args_json_raw = isset($_POST['args_json']) ? wp_unslash($_POST['args_json']) : '';
     $classes_raw = isset($_POST['classes']) ? wp_unslash($_POST['classes']) : '';
     $icon_raw = isset($_POST['icon']) ? wp_unslash($_POST['icon']) : '';
     $attributes_raw = isset($_POST['attributes']) ? wp_unslash($_POST['attributes']) : '';
 
     $args_value = trim((string) $args_raw);
-    if ($args_value === '' || $args_value === '$args') {
-        $args = 'Je suis un bouton';
+    $args_type = trim((string) $args_type_raw);
+    $args_json = trim((string) $args_json_raw);
+
+    if ($args_type === 'var') {
+        $decoded = json_decode((string) $args_json, true);
+        if (is_array($decoded) && !empty($decoded)) {
+            $args = $decoded;
+        } else {
+            $args = 'Je suis un bouton';
+        }
     } else {
-        $args = sg_parse_literal_string($args_value);
+        if ($args_value === '' || $args_value === '$args') {
+            $args = 'Je suis un bouton';
+        } else {
+            $args = sg_parse_literal_string($args_value);
+        }
     }
 
     $classes = sg_parse_literal_string($classes_raw);
@@ -264,17 +278,117 @@ function sg_ajax_preview_btn()
 add_action('wp_ajax_sg_preview_btn', 'sg_ajax_preview_btn');
 add_action('wp_ajax_nopriv_sg_preview_btn', 'sg_ajax_preview_btn');
 
+function sg_ajax_preview_picto()
+{
+    $name_raw = isset($_POST['name']) ? wp_unslash($_POST['name']) : '';
+    $size_raw = isset($_POST['size']) ? wp_unslash($_POST['size']) : '';
+    $animate_raw = isset($_POST['animate']) ? wp_unslash($_POST['animate']) : '';
+
+    $name = trim(sg_parse_literal_string($name_raw));
+    if ($name === '' || $name === '$name') {
+        $name = 'youtube';
+    }
+
+    $size = trim(sg_parse_literal_string($size_raw));
+    $animate = in_array(strtolower(trim((string) $animate_raw)), ['1', 'true', 'on'], true);
+
+    ob_start();
+    component::picto($name, $size, $animate);
+    $html = ob_get_clean();
+
+    wp_send_json_success([
+        'html' => $html,
+    ]);
+}
+
+add_action('wp_ajax_sg_preview_picto', 'sg_ajax_preview_picto');
+add_action('wp_ajax_nopriv_sg_preview_picto', 'sg_ajax_preview_picto');
+
+function sg_ajax_preview_icon()
+{
+    $name_raw = isset($_POST['name']) ? wp_unslash($_POST['name']) : '';
+    $width_raw = isset($_POST['width']) ? wp_unslash($_POST['width']) : '';
+    $height_raw = isset($_POST['height']) ? wp_unslash($_POST['height']) : '';
+    $classes_raw = isset($_POST['classes']) ? wp_unslash($_POST['classes']) : '';
+
+    $name = trim(sg_parse_literal_string($name_raw));
+    if ($name === '' || $name === '$name') {
+        $name = 'youtube';
+    }
+
+    $width = absint($width_raw);
+    if ($width <= 0) $width = 24;
+    $height = absint($height_raw);
+    if ($height <= 0) $height = 24;
+    $classes = sg_parse_literal_string($classes_raw);
+
+    ob_start();
+    component::icon($name, $width, $height, $classes ?: null);
+    $html = ob_get_clean();
+
+    wp_send_json_success([
+        'html' => $html,
+    ]);
+}
+
+add_action('wp_ajax_sg_preview_icon', 'sg_ajax_preview_icon');
+add_action('wp_ajax_nopriv_sg_preview_icon', 'sg_ajax_preview_icon');
+
+function sg_ajax_preview_link()
+{
+    $link_json_raw = isset($_POST['link_json']) ? wp_unslash($_POST['link_json']) : '';
+    $classes_raw = isset($_POST['classes']) ? wp_unslash($_POST['classes']) : '';
+    $icon_raw = isset($_POST['icon']) ? wp_unslash($_POST['icon']) : '';
+    $attributes_raw = isset($_POST['attributes']) ? wp_unslash($_POST['attributes']) : '';
+
+    $decoded = json_decode((string) $link_json_raw, true);
+    $link = is_array($decoded) && !empty($decoded) ? $decoded : [
+        "title" => "Lorem ipsum",
+        "url" => "/",
+        "target" => "",
+    ];
+
+    $classes = sg_parse_literal_string($classes_raw);
+    $icon = sg_parse_icon_literal($icon_raw);
+    $attributes = trim((string) $attributes_raw);
+
+    ob_start();
+    component::link($link, $classes ?: null, $icon ?: null, $attributes ?: null);
+    $html = ob_get_clean();
+
+    wp_send_json_success([
+        'html' => $html,
+    ]);
+}
+
+add_action('wp_ajax_sg_preview_link', 'sg_ajax_preview_link');
+add_action('wp_ajax_nopriv_sg_preview_link', 'sg_ajax_preview_link');
+
 function sg_ajax_preview_title()
 {
     $args_raw = isset($_POST['args']) ? wp_unslash($_POST['args']) : '';
+    $args_type_raw = isset($_POST['args_type']) ? wp_unslash($_POST['args_type']) : '';
+    $args_json_raw = isset($_POST['args_json']) ? wp_unslash($_POST['args_json']) : '';
     $hx_raw = isset($_POST['hx']) ? wp_unslash($_POST['hx']) : '';
     $classes_raw = isset($_POST['classes']) ? wp_unslash($_POST['classes']) : '';
 
     $args_value = trim((string) $args_raw);
-    if ($args_value === '' || $args_value === '$args') {
-        $args = 'Lorem ipsum dolor sit amet';
+    $args_type = trim((string) $args_type_raw);
+    $args_json = trim((string) $args_json_raw);
+
+    if ($args_type === 'var') {
+        $decoded = json_decode((string) $args_json, true);
+        if (is_array($decoded) && !empty($decoded)) {
+            $args = $decoded;
+        } else {
+            $args = 'Lorem ipsum dolor sit amet';
+        }
     } else {
-        $args = sg_parse_literal_string($args_value);
+        if ($args_value === '' || $args_value === '$args') {
+            $args = 'Lorem ipsum dolor sit amet';
+        } else {
+            $args = sg_parse_literal_string($args_value);
+        }
     }
 
     $hx = absint($hx_raw);
@@ -339,3 +453,59 @@ function sg_ajax_preview_list()
 
 add_action('wp_ajax_sg_preview_list', 'sg_ajax_preview_list');
 add_action('wp_ajax_nopriv_sg_preview_list', 'sg_ajax_preview_list');
+
+function sg_ajax_preview_picture()
+{
+    $args_raw = isset($_POST['args']) ? wp_unslash($_POST['args']) : '';
+    $args_type = isset($_POST['args_type']) ? wp_unslash($_POST['args_type']) : '';
+    $args_json = isset($_POST['args_json']) ? wp_unslash($_POST['args_json']) : '';
+    $classes_raw = isset($_POST['classes']) ? wp_unslash($_POST['classes']) : '';
+    $lazy_raw = isset($_POST['lazy']) ? wp_unslash($_POST['lazy']) : '';
+    $placeholder_raw = isset($_POST['placeholder']) ? wp_unslash($_POST['placeholder']) : '';
+    $breakpoint_raw = isset($_POST['breakpoint']) ? wp_unslash($_POST['breakpoint']) : '';
+
+    $args_value = trim((string) $args_raw);
+    $args_type = trim((string) $args_type);
+
+    if ($args_type === 'var') {
+        $decoded = json_decode((string) $args_json, true);
+        $args = is_array($decoded) && !empty($decoded) ? $decoded : 460;
+    } elseif ($args_type !== 'src' && ($args_value === '' || $args_value === '$args')) {
+        $args = 460;
+    } elseif ($args_type === 'id') {
+        $args = preg_match('/^\d+$/', $args_value) ? (int) $args_value : 460;
+    } elseif ($args_type === 'src') {
+        $path = trim($args_value);
+        // Strip a leading `THEME_ASSETS .` expression if the user typed the full form.
+        $path = preg_replace('/^\s*THEME_ASSETS\s*\.\s*/', '', $path);
+        $path = sg_parse_literal_string($path);
+        if ($path === '') {
+            $path = 'img/image.jpg';
+        }
+        $args = (defined('THEME_ASSETS') ? THEME_ASSETS : '') . $path;
+    } elseif (preg_match('/^\d+$/', $args_value)) {
+        $args = (int) $args_value;
+    } else {
+        $args = sg_parse_literal_string($args_value);
+    }
+
+    $classes = sg_parse_literal_string($classes_raw);
+    $lazy = in_array(strtolower(trim((string) $lazy_raw)), ['1', 'true', 'on'], true);
+    $placeholder = in_array(strtolower(trim((string) $placeholder_raw)), ['1', 'true', 'on'], true);
+
+    $breakpoint = absint($breakpoint_raw);
+    if ($breakpoint <= 0) {
+        $breakpoint = 768;
+    }
+
+    ob_start();
+    component::picture($args, $classes, $lazy, $placeholder, $breakpoint);
+    $html = ob_get_clean();
+
+    wp_send_json_success([
+        'html' => $html,
+    ]);
+}
+
+add_action('wp_ajax_sg_preview_picture', 'sg_ajax_preview_picture');
+add_action('wp_ajax_nopriv_sg_preview_picture', 'sg_ajax_preview_picture');
