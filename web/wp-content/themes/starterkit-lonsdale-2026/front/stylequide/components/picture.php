@@ -1,5 +1,7 @@
 <sg-part type="component" tag="html" label="Picture" name="picture">
-    <code class="sg-code-inline" data-syntax="php">picture($args,$classes = "",$lazy = true,$placeholder = false,$breakpoint = 768) </code>
+    <code class="sg-code-inline" data-syntax="php">
+        picture($args,$classes = "", $lazy = true, $placeholder = false, $breakpoint = 768)
+    </code>
     
     <div>Créer un element picture avec un id de l'image, un chemin de l'image ou un tableau d'arguments. </div>
    
@@ -84,15 +86,6 @@
             </tbody>
         </table>
 
-        <div class="sg-components-builder-result">
-            <sg-code data-btn-builder>
-                component:picture(460)
-            </sg-code>
-
-            <div class="sg-render" data-ajax-url="<?= esc_url(admin_url('admin-ajax.php')) ?>">
-                <?php component::picture(460) ?>
-            </div>
-        </div>
+        <sg-builder-result code="component:picture(460)"></sg-builder-result>
     </div>
-
 </sg-part>

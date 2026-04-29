@@ -7,6 +7,10 @@ $icons_refresh_notice = $icons_manifest['notice'] ?? '';
 
 ?>
 
+<script>
+    window.SG_AJAX_URL = <?= json_encode(esc_url(admin_url('admin-ajax.php'))) ?>;
+</script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" />

@@ -61,14 +61,6 @@
             </tbody>
         </table>
 
-        <div class="sg-components-builder-result">
-            <sg-code data-btn-builder>
-                component:title($args)
-            </sg-code>
-
-            <div class="sg-render" data-ajax-url="<?= esc_url(admin_url('admin-ajax.php')) ?>">
-                <?php component::title('Lorem ipsum dolor sit amet', 1) ?>
-            </div>
-        </div>
+        <sg-builder-result code="component:title('Lorem ipsum dolor sit amet', 2)"></sg-builder-result>
     </div>
 </sg-part>

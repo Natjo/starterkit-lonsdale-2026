@@ -8,6 +8,14 @@ const _iconsUrl = (() => {
     } catch (_) { /* noop */ }
     return `${_coreBaseUrl}../../assets/img/icons.svg`;
 })();
+const _sgAjaxUrl = (() => {
+    try {
+        const value = globalThis?.SG_AJAX_URL;
+        return typeof value === 'string' ? value.trim() : '';
+    } catch (_) {
+        return '';
+    }
+})();
 
 class UiSummary extends HTMLElement {
     connectedCallback() {
@@ -53,6 +61,7 @@ class SgPart extends HTMLElement {
         const name    = this.getAttribute('name')    || '';
         const type    = (this.getAttribute('type') || '').trim().toLowerCase();
         const actionAttr = (this.getAttribute('action') || '').trim();
+        const ajaxUrlAttr = (this.getAttribute('data-ajax-url') || '').trim();
         const tagAttr = this.getAttribute('tag') || '';
         const tags = tagAttr
             .split(',')
@@ -113,6 +122,8 @@ class SgPart extends HTMLElement {
         const details = document.createElement('details');
         details.className = 'sg-details sg-strate-header';
         details.id = `sg-${name}`;
+        const effectiveAjaxUrl = ajaxUrlAttr || _sgAjaxUrl;
+        if (effectiveAjaxUrl) details.setAttribute('data-ajax-url', effectiveAjaxUrl);
         if (actionHtml) {
             details.innerHTML = `
                 <summary>
@@ -235,7 +246,15 @@ customElements.define("sg-bg-color", SgBgColor);
 
 class SgCode extends HTMLElement {
     connectedCallback() {
-        const rawCode = (this.textContent || "").trim();
+        let rawCode = (this.textContent || "").trim();
+        if (!rawCode && this.hasAttribute("data-btn-builder")) {
+            const explicit = (this.getAttribute("data-component") || "").trim();
+            const fromResult = (this.closest(".sg-components-builder-result")?.getAttribute("name") || "").trim();
+            const componentName = explicit || fromResult;
+            if (componentName) {
+                rawCode = `component:${componentName}($args)`;
+            }
+        }
         if (!rawCode) {
             this.replaceWith(document.createTextNode(""));
             return;
@@ -268,6 +287,56 @@ class SgCode extends HTMLElement {
     }
 }
 customElements.define("sg-code", SgCode);
+
+class SgBuilderResult extends HTMLElement {
+    connectedCallback() {
+        const name = (this.getAttribute("name") || "").trim();
+        const codeAttr = (this.getAttribute("code") || "").trim();
+        const tmp = document.createElement("div");
+        tmp.innerHTML = this.innerHTML;
+
+        // Allow overriding the defaults by providing your own sg-code / .sg-render.
+        const existingCode = tmp.querySelector("sg-code");
+        const existingRender = tmp.querySelector(".sg-render");
+
+        const inferComponentName = (raw = "") => {
+            const value = String(raw || "").trim();
+            const match = value.match(/component:([a-z_]\w*)\s*\(/i);
+            return (match?.[1] || "").trim();
+        };
+        const derivedName =
+            name ||
+            inferComponentName(codeAttr) ||
+            inferComponentName(existingCode?.textContent || "");
+
+        // Optional: provide initial preview without writing `.sg-render`.
+        // Usage: <div data-sg-render>...html...</div>
+        let renderHtml = '';
+        const renderSlot = tmp.querySelector("[data-sg-render]");
+        if (!existingRender && renderSlot) {
+            renderHtml = `<div class="sg-render">${renderSlot.innerHTML}</div>`;
+            renderSlot.remove();
+        } else {
+            renderHtml = existingRender ? existingRender.outerHTML : '<div class="sg-render"></div>';
+        }
+
+        // Optional: provide initial snippet without typing inside <sg-code>.
+        // Usage: <sg-builder-result code="component:link($link)">...</sg-builder-result>
+        const codeHtml = existingCode
+            ? existingCode.outerHTML
+            : (codeAttr ? `<sg-code data-btn-builder>${codeAttr}</sg-code>` : '<sg-code data-btn-builder></sg-code>');
+
+        existingCode?.remove();
+        existingRender?.remove();
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "sg-components-builder-result";
+        if (derivedName) wrapper.setAttribute("name", derivedName);
+        wrapper.innerHTML = `${codeHtml}${tmp.innerHTML}${renderHtml}`;
+        this.replaceWith(wrapper);
+    }
+}
+customElements.define("sg-builder-result", SgBuilderResult);
 
 const dedentSnippet = (raw = "") => {
     const lines = raw.replace(/\t/g, "    ").split("\n");
@@ -791,7 +860,12 @@ const initBtnCodeBuilder = () => {
         if (!componentName) return;
 
         const preview = builderRoot.querySelector(".sg-render");
-        const ajaxUrl = preview?.dataset.ajaxUrl || "";
+        const ajaxUrl =
+            preview?.dataset.ajaxUrl ||
+            builderRoot.dataset.ajaxUrl ||
+            builderRoot.closest?.("[data-ajax-url]")?.dataset.ajaxUrl ||
+            _sgAjaxUrl ||
+            "";
         const getInput = (name) => builderRoot.querySelector(`[data-param="${name}"]`);
         const argsInput = getInput("args");
         const argsTypeInput = builderRoot.querySelector('select[data-param="args-type"]');

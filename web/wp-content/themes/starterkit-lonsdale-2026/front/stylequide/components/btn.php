@@ -1,5 +1,11 @@
+<?php
+$icons_list = isset($icons_list) && is_array($icons_list) ? $icons_list : [];
+?>
+
 <sg-part type="component" tag="html,css" label="Btn" name="btn">
-    <code class="sg-code-inline" data-syntax="php">btn($args, $classes = null, $icon = [], $attributes = null)</code>
+    <code class="sg-code-inline" data-syntax="php">
+        btn($args, $classes = null, $icon = [], $attributes = null)
+    </code>
 
     <div class="sg-components-builder">
         <table class="sg-table">
@@ -55,7 +61,7 @@
                     <td>icon</td>
                     <td>Icône optionnelle</td>
                     <td>
-                        <?php getIcons($icons_list); ?>
+                        <?php if (function_exists('getIcons')) getIcons($icons_list); ?>
                     </td>
                 </tr>
                 <tr>
@@ -68,13 +74,6 @@
             </tbody>
         </table>
 
-        <div class="sg-components-builder-result">
-            <sg-code data-btn-builder>component:btn($args)</sg-code>
-
-            <div class="sg-render" data-ajax-url="<?= esc_url(admin_url('admin-ajax.php')) ?>">
-                <?php component::btn("Se more", "btn-primary") ?>
-            </div>
-        </div>
+        <sg-builder-result code="component:btn('Se more', 'btn-primary')"></sg-builder-result>
     </div>
-
 </sg-part>

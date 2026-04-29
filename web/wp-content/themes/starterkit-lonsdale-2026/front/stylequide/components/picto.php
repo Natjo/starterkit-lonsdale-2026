@@ -1,5 +1,11 @@
+<?php
+$icons_list = isset($icons_list) && is_array($icons_list) ? $icons_list : [];
+?>
+
 <sg-part type="component" tag="html,css" label="Picto" name="picto">
-    <code class="sg-code-inline" data-syntax="php">picto($name, $size = "", $animate = false)</code>
+    <code class="sg-code-inline" data-syntax="php">
+        picto($name, $size = "", $animate = false)
+    </code>
     
     <div class="sg-components-builder">
         <table class="sg-table">
@@ -42,15 +48,6 @@
             </tbody>
         </table>
 
-        <div class="sg-components-builder-result">
-            <sg-code data-btn-builder>
-                component:picto("youtube")
-            </sg-code>
-
-            <div class="sg-render" data-ajax-url="<?= esc_url(admin_url('admin-ajax.php')) ?>">
-                <?php component::picto("youtube", "") ?>
-            </div>
-        </div>
+        <sg-builder-result code="component:picto('youtube', '')"></sg-builder-result>
     </div>
-
 </sg-part>

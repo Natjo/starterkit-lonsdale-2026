@@ -1,5 +1,14 @@
+<?php
+$card_news = isset($card_news) && is_array($card_news) ? $card_news : [
+    "title" => "Lorem ipsum dolor sit amet",
+    "images" => ["desktop" => 460],
+];
+?>
+
 <sg-part type="component" tag="html" label="List" name="list">
-    <code class="sg-code-inline" data-syntax="php">list($items, $card = "news", $classes = null)</code>
+    <code class="sg-code-inline" data-syntax="php">
+        list($items, $card = "news", $classes = null)
+    </code>
 
     <div class="sg-components-builder">
         <table class="sg-table">
@@ -20,15 +29,16 @@
                     <td>
                         <input type="hidden" data-param="items" placeholder='$items'>
                         <sg-snippet no-copy>
-                            $items = [
+                            $items = 
                             [
-                            "title" => "Lorem ipsum dolor sit amet",
-                            "images" => ["desktop" => 460]
-                            ],
-                            [
-                            "title" => "Lorem ipsum dolor sit amet",
-                            "images" => ["desktop" => 460]
-                            ],
+                                [
+                                    "title" => "Lorem ipsum dolor sit amet",
+                                    "images" => ["desktop" => 460]
+                                ],
+                                [
+                                    "title" => "Lorem ipsum dolor sit amet",
+                                    "images" => ["desktop" => 460]
+                                ],
                             ]
                         </sg-snippet>
                     </td>
@@ -55,14 +65,7 @@
                 </tr>
             </tbody>
         </table>
-        <div class="sg-components-builder-result">
-            <sg-code data-btn-builder>
-                component:list($items)
-            </sg-code>
 
-            <div class="sg-render" data-ajax-url="<?= esc_url(admin_url('admin-ajax.php')) ?>">
-                <?php component::list([$card_news, $card_news], "news", "sg-list") ?>
-            </div>
-        </div>
+        <sg-builder-result code="component:list([$card_news, $card_news], 'news', 'sg-list')"></sg-builder-result>
     </div>
 </sg-part>

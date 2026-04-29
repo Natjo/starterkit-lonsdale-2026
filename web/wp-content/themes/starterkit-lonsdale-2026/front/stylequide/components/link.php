@@ -1,11 +1,27 @@
+<?php
+$link = isset($link) && is_array($link) ? $link : [
+    "title" => "Lorem ipsum",
+    "url" => "/",
+    "target" => "",
+];
+$icons_list = isset($icons_list) && is_array($icons_list) ? $icons_list : [];
+?>
+
 <sg-part type="component" tag="html,css" label="Link" name="link">
-    <code class="sg-code-inline" data-syntax="php">link($args)</code>
+    <code class="sg-code-inline" data-syntax="php">
+    link(
+        $link,
+        $classes = null,
+        $icon = null,
+        $attributes = null
+    )
+    </code>
     
     <div class="sg-components-builder">
         <table class="sg-table">
             <thead>
                 <tr>
-                    <th>Arg</th>
+                    <th>$link</th>
                     <th>Description</th>
                     <th>Valeur</th>
                 </tr>
@@ -21,12 +37,16 @@
                             type="hidden"
                             data-param="link"
                             value="$link"
-                            data-link-json='<?= esc_attr(json_encode($link)) ?>'>
+                            data-link-json='<?= esc_attr(json_encode([
+                                "title" => "Lorem ipsum",
+                                "url" => "/",
+                                "target" => "",
+                            ])) ?>'>
                         <sg-snippet no-copy>
                             $link = [
-                            "title" => "Lorem ipsum",
-                            "url" => "/",
-                            "target" => "",
+                                "title" => "Lorem ipsum",
+                                "url" => "/",
+                                "target" => "",
                             ];
                         </sg-snippet>
                     </td>
@@ -52,7 +72,7 @@
                         <p>Icône optionnelle</p>
                     </td>
                     <td>
-                        <?php getIcons($icons_list); ?>
+                        <?php if (function_exists('getIcons')) getIcons($icons_list); ?>
                     </td>
                 </tr>
                 <tr>
@@ -67,14 +87,6 @@
             </tbody>
         </table>
 
-        <div class="sg-components-builder-result">
-            <sg-code data-btn-builder>
-                component:link($args)
-            </sg-code>
-
-            <div class="sg-render" data-ajax-url="<?= esc_url(admin_url('admin-ajax.php')) ?>">
-                <?php component::link($link) ?>
-            </div>
-        </div>
+        <sg-builder-result code="component:link($link)"></sg-builder-result>
     </div>
 </sg-part>
