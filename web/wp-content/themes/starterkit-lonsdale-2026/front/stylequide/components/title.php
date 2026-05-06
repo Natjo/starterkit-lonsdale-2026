@@ -1,6 +1,6 @@
-<sg-part type="component" tag="css,html,js" label="Title" name="title">
+<sg-part type="component" tag="css,html" label="Title" name="title">
     <code class="sg-code-inline" data-syntax="php">
-        title($args, $hx = 2, $classes = null)
+        title($args, $hx = 2, $classes = null, $attributes = null)
     </code>
 
     <div class="sg-components-builder">
@@ -12,13 +12,11 @@
                     <th>Valeur</th>
                 </tr>
             </thead>
-            
+
             <tbody>
                 <tr>
-                    <td><strong>$args</strong>/<strong>title</strong></td>
-                    <td>
-                        <p>Tableau associatif avec le titre ou<br> le titre en string</p>
-                    </td>
+                    <td>$args / title</td>
+                    <td>Tableau associatif avec le titre ou<br> le titre en string</td>
                     <td class="sg-table-value">
                         <select data-param="args-type">
                             <option value="title">Title</option>
@@ -28,16 +26,14 @@
                         <input type="text" data-param="args" data-args-type="title" value='Lorem ipsum dolor sit amet'>
                         <span class="sg-args-var" data-param="args" data-args-type="var"
                             data-args-value="$args"
-                            data-args-json='<?= esc_attr(json_encode(["title" => "Lorem ipsum dolor"])) ?>' hidden>
+                            data-args-json='<?= esc_attr(wp_json_encode(["title" => "Lorem ipsum dolor"])) ?>' hidden>
                             <sg-snippet no-copy></sg-snippet>
                         </span>
                     </td>
                 </tr>
                 <tr>
-                    <td><strong>hx</strong></td>
-                    <td>
-                        <p>Niveau de titre</p>
-                    </td>
+                    <td>hx</td>
+                    <td>Niveau de titre</td>
                     <td>
                         <select data-param="hx">
                             <option value="1">1</option>
@@ -50,17 +46,28 @@
                     </td>
                 </tr>
                 <tr>
-                    <td><strong>classes</strong></td>
-                    <td>
-                        <p>Classes optionnelles</p>
+                    <td>classes</td>
+                    <td>Classes optionnelles</td>
+                    <td class="sg-table-value">
+                        <select data-param="classes">
+                            <option value="title-1" selected>title-1</option>
+                            <option value="title-2">title-2</option>
+                        </select>
+                        <input type="text" data-param="classes" placeholder='ajouter class'>
                     </td>
-                    <td>
-                        <input type="text" data-param="classes" placeholder='ma class'>
+                </tr>
+                <tr>
+                    <td>attributes</td>
+                    <td>Attributs optionnels</td>
+                    <td class="sg-table-value">
+                        <input type="text" data-param="attributes" placeholder='aria-label="Title"'>
                     </td>
                 </tr>
             </tbody>
         </table>
 
-        <sg-builder-result code="component:title('Lorem ipsum dolor sit amet', 2)"></sg-builder-result>
+        <sg-builder-result
+            code="component:title('Lorem ipsum dolor sit amet', 2)"
+            data-sg-params="args,hx,classes,attributes"></sg-builder-result>
     </div>
 </sg-part>

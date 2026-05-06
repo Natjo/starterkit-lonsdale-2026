@@ -19,23 +19,19 @@ $icons_list = isset($icons_list) && is_array($icons_list) ? $icons_list : [];
 
             <tbody>
                 <tr>
-                    <td><strong>name</strong></td>
-                    <td>
-                        <p>Nom de l'icône</p>
-                    </td>
+                    <td>name</td>
+                    <td>Nom de l'icône</td>
                     <td class="sg-table-value">
                         <select data-param="name">
                             <?php foreach ($icons_list as $icon) : ?>
-                                <option value="<?= esc_attr($icon['id']) ?>"><?= esc_html($icon['id']) ?></option>
+                                <option value="<?= esc_attr($icon['id']) ?>"<?= ($icon['id'] ?? '') === 'youtube' ? ' selected' : '' ?>><?= esc_html($icon['id']) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </td>
                 </tr>
                 <tr>
-                    <td><strong>classes</strong></td>
-                    <td>
-                        <p>Classes optionnelles</p>
-                    </td>
+                    <td>classes</td>
+                    <td>Classes optionnelles</td>
                     <td class="sg-table-value">
                         <select data-param="size">
                             <option value="sm">sm</option>
@@ -45,9 +41,22 @@ $icons_list = isset($icons_list) && is_array($icons_list) ? $icons_list : [];
                         <input type="text" data-param="size" placeholder=''>
                     </td>
                 </tr>
+                <tr>
+                    <td>animate</td>
+                    <td>Animation</td>
+                    <td class="sg-table-value">
+                        <label>
+                            <input type="checkbox" data-param="animate">
+                            Activer
+                        </label>
+                    </td>
+                </tr>
             </tbody>
         </table>
 
-        <sg-builder-result code="component:picto('youtube', '')"></sg-builder-result>
+        <sg-builder-result
+            code="component:picto('youtube', '')"
+            data-sg-params="name,size,animate"
+        ></sg-builder-result>
     </div>
 </sg-part>

@@ -509,3 +509,179 @@ function sg_ajax_preview_picture()
 
 add_action('wp_ajax_sg_preview_picture', 'sg_ajax_preview_picture');
 add_action('wp_ajax_nopriv_sg_preview_picture', 'sg_ajax_preview_picture');
+
+function sg_styleguide_components_whitelist()
+{
+    static $allowed = null;
+    if (is_array($allowed)) return $allowed;
+
+    $allowed = [];
+    $dir = __DIR__ . '/stylequide/components';
+    $files = glob($dir . '/*.php') ?: [];
+    foreach ($files as $file) {
+        $name = basename((string) $file, '.php');
+        $name = strtolower(trim($name));
+        if ($name === '') continue;
+        // Only keep method-safe identifiers (`component::<name>`).
+        if (!preg_match('/^[a-z_]\w*$/i', $name)) continue;
+        $allowed[] = $name;
+    }
+    $allowed = array_values(array_unique($allowed));
+    return $allowed;
+}
+
+function sg_coerce_preview_payload_value($value)
+{
+    if (is_array($value) || is_object($value) || is_bool($value) || is_int($value) || is_float($value) || $value === null) {
+        return $value;
+    }
+
+    $raw = trim((string) $value);
+    if ($raw === '') return null;
+    if (preg_match('/^(null|true|false)$/i', $raw)) {
+        $lower = strtolower($raw);
+        if ($lower === 'null') return null;
+        return $lower === 'true';
+    }
+    if (preg_match('/^-?\d+(?:\.\d+)?$/', $raw)) {
+        return str_contains($raw, '.') ? (float) $raw : (int) $raw;
+    }
+
+    return sg_parse_literal_string($raw);
+}
+
+function sg_ajax_preview_component()
+{
+    $render_fn_raw = isset($_POST['render_fn']) ? wp_unslash($_POST['render_fn']) : '';
+    $render_params_raw = isset($_POST['render_params']) ? wp_unslash($_POST['render_params']) : '';
+    $payload_json_raw = isset($_POST['payload_json']) ? wp_unslash($_POST['payload_json']) : '';
+
+    $render_fn = trim((string) $render_fn_raw);
+    if (!preg_match('/^component::([a-z_]\w*)$/i', $render_fn, $m)) {
+        wp_send_json_error(['message' => 'Invalid render_fn'], 400);
+    }
+    $method = strtolower((string) $m[1]);
+
+    $allowed = sg_styleguide_components_whitelist();
+    if (!in_array($method, $allowed, true)) {
+        wp_send_json_error(['message' => 'Method not allowed'], 403);
+    }
+    if (!class_exists('component') || !is_callable(['component', $method])) {
+        wp_send_json_error(['message' => 'Unknown component method'], 400);
+    }
+
+    $params = array_filter(array_map('trim', explode(',', (string) $render_params_raw)));
+    $params = array_values(array_filter($params, fn($p) => preg_match('/^[a-z_]\w*$/i', (string) $p)));
+
+    $payload = [];
+    $payload_raw = trim((string) $payload_json_raw);
+    if ($payload_raw !== '') {
+        $decoded = json_decode($payload_raw, true);
+        if (is_array($decoded)) $payload = $decoded;
+    }
+    $args_type = isset($payload['args_type']) ? trim(sg_parse_literal_string((string) $payload['args_type'])) : '';
+
+    $args = [];
+    foreach ($params as $param) {
+        $param = (string) $param;
+        $json_key = $param . '_json';
+
+        $value = null;
+        if (array_key_exists($json_key, $payload) && $payload[$json_key] !== '' && $payload[$json_key] !== null) {
+            $candidate = $payload[$json_key];
+            if (is_string($candidate)) {
+                $decoded = json_decode($candidate, true);
+                $value = $decoded;
+            } else {
+                $value = $candidate;
+            }
+        } elseif (array_key_exists($param, $payload)) {
+            $value = $payload[$param];
+        } elseif (isset($_POST[$param])) {
+            $value = wp_unslash($_POST[$param]);
+        }
+
+        // Special handling for the common `$args` pattern used in builders.
+        // - Global: supports `var` (JSON decoded)
+        // - Only for `picture`: supports `id` and `src` (url → THEME_ASSETS)
+        if ($param === 'args' && $args_type !== '') {
+            if ($args_type === 'var') {
+                $candidate = $payload[$json_key] ?? null;
+                if (is_string($candidate) && trim($candidate) !== '') {
+                    $decoded = json_decode($candidate, true);
+                    if (is_array($decoded)) {
+                        $value = $decoded;
+                    }
+                } elseif (is_array($candidate)) {
+                    $value = $candidate;
+                }
+            } elseif ($method === 'picture' && $args_type === 'id') {
+                $n = absint($value);
+                $value = $n > 0 ? $n : 460;
+            } elseif ($method === 'picture' && $args_type === 'src') {
+                $raw = trim((string) $value);
+                // Strip a leading `THEME_ASSETS .` expression if the user typed it.
+                $raw = preg_replace('/^\s*THEME_ASSETS\s*\.\s*/', '', $raw);
+                $raw = sg_parse_literal_string($raw);
+                if ($raw === '') $raw = 'img/image.jpg';
+                $value = (defined('THEME_ASSETS') ? THEME_ASSETS : '') . $raw;
+            }
+        }
+
+        if ($param === 'icon') {
+            if (is_string($value)) {
+                $parsed = sg_parse_icon_literal($value);
+                $value = !empty($parsed) ? $parsed : [];
+            } elseif ($value === null) {
+                $value = [];
+            }
+        }
+
+        // Dialog builder : $content en rendu PHP, HTML de démo via content_json pour la preview.
+        if ($method === 'dialog' && $param === 'content') {
+            $raw = is_string($value) ? trim((string) $value) : '';
+            if ($raw !== '' && preg_match('/^\$[a-zA-Z_]\w*$/', $raw)) {
+                $candidate = $payload['content_json'] ?? null;
+                if (is_string($candidate) && $candidate !== '') {
+                    $decoded = json_decode($candidate, true);
+                    if (is_string($decoded) && $decoded !== '') {
+                        $value = $decoded;
+                    }
+                }
+            }
+        }
+
+        $args[] = sg_coerce_preview_payload_value($value);
+    }
+
+    // Styleguide envoie type / trigger_name / trigger_classes à plat ; le composant attend
+    // $trigger = ["btn"|"link", $label|null, $classes|null].
+    if ($method === 'dialog' && count($args) >= 6) {
+        [$t_content, $t_type, $t_name, $t_trigger_classes, $t_classes, $t_attributes] = $args;
+        $t_type = is_string($t_type) ? strtolower(trim($t_type)) : 'btn';
+        if ($t_type !== 'link') {
+            $t_type = 'btn';
+        }
+        $args = [
+            $t_content,
+            [
+                $t_type,
+                ($t_name === null || $t_name === '') ? null : (string) $t_name,
+                ($t_trigger_classes === null || $t_trigger_classes === '') ? null : (string) $t_trigger_classes,
+            ],
+            $t_classes,
+            $t_attributes,
+        ];
+    }
+
+    ob_start();
+    call_user_func_array(['component', $method], $args);
+    $html = ob_get_clean();
+
+    wp_send_json_success([
+        'html' => $html,
+    ]);
+}
+
+add_action('wp_ajax_sg_preview_component', 'sg_ajax_preview_component');
+add_action('wp_ajax_nopriv_sg_preview_component', 'sg_ajax_preview_component');

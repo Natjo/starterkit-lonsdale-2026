@@ -2,6 +2,7 @@ import Slider from "../../components/slider/slider.js";
 import Breakpoint from "../../modules/breakpoint";
 
 export default el => {
+    
     const slider = el.querySelector(".slider");
     const myslider = new Slider(slider);
    

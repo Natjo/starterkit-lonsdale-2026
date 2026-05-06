@@ -10,6 +10,12 @@ body {
     font-family: var(--sg-font-sans);
 }
 
+.sg-checkbox-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
 .sg-header {
     background-color: aliceblue;
     padding: 0px var(--ctr-offset);
@@ -224,6 +230,7 @@ body {
     input[type="number"] {
         max-width: 60px;
     }
+
     input[type="text"] {
         max-width: 200px;
     }
@@ -499,6 +506,21 @@ body {
         background: #f5f5f5;
         padding: 6px 8px;
         border-radius: 5px;
+
+
+    }
+
+    &.full {
+
+        .sg-table {
+            grid-column: 1/-1;
+            position: static;
+        }
+
+        .sg-components-builder-result {
+            grid-column: 1/-1;
+            position: static;
+        }
     }
 
 
@@ -562,6 +584,11 @@ body {
     gap: 20px;
     border-bottom: 1px solid rgba(0, 0, 0, .15);
     box-sizing: border-box;
+
+    &:has(.full) {
+        justify-content: stretch;
+        justify-items: stretch;
+    }
 }
 
 .sg-color {
@@ -719,6 +746,7 @@ body {
             width: fit-content;
             white-space: nowrap;
             width: 100px;
+            font-weight: 600
         }
 
 
@@ -760,12 +788,19 @@ body {
     }
 
 
+
     &:not(:has(thead)) {
         tr {
             border-bottom: 1px solid rgba(0, 0, 0, .15);
         }
     }
+
+    tr.sg-table-group {
+        background-color: rgba(0, 0, 0, .03);
+
+    }
 }
+
 
 .sg-code {
     font-size: 18px;
@@ -832,6 +867,14 @@ body {
 .sg-code-wrap {
     align-items: center;
     display: inline-flex;
+
+    &.implementation {
+        border: 1px solid #ccc;
+        border-left: 6px solid #319fff;
+        border-radius: 5px;
+        background: #f5f5f5;
+        padding: 10px 20px;
+    }
 }
 
 .sg-code-inline .tok-class {

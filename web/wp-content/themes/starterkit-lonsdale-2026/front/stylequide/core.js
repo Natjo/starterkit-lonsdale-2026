@@ -17,6 +17,137 @@ const _sgAjaxUrl = (() => {
     }
 })();
 
+const _sgHydrateModuleCache = new Map();
+const _sgHydrateCssCache = new Map();
+const _sgHydrateCleanupByPreview = new WeakMap();
+
+const sgResolveHydrateUrl = (raw = "") => {
+    const value = String(raw || "").trim();
+    if (!value) return "";
+    try {
+        return new URL(value, _coreScriptUrl || window.location.href).toString();
+    } catch (_) {
+        return value;
+    }
+};
+
+const sgCleanupFromHydratorReturn = (value) => {
+    if (typeof value === "function") return value;
+    if (value && typeof value === "object") {
+        if (typeof value.cleanup === "function") return () => value.cleanup();
+        if (typeof value.destroy === "function") return () => value.destroy();
+        if (typeof value.remove === "function") return () => value.remove();
+    }
+    return null;
+};
+
+const sgEnsureStylesheet = (url) => {
+    const href = sgResolveHydrateUrl(url);
+    if (!href) return Promise.resolve();
+    if (_sgHydrateCssCache.has(href)) return _sgHydrateCssCache.get(href);
+
+    const promise = new Promise((resolve) => {
+        let timer = null;
+        const done = () => {
+            if (timer) window.clearTimeout(timer);
+            resolve();
+        };
+        // Never block hydration forever if the CSS request hangs.
+        timer = window.setTimeout(done, 2000);
+
+        const existing = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+            .find((l) => (l instanceof HTMLLinkElement) && l.href === href);
+        if (existing && existing instanceof HTMLLinkElement) {
+            // Already loaded?
+            if (existing.dataset.sgCssLoaded === "1" || existing.sheet) return done();
+            existing.addEventListener("load", done, { once: true });
+            existing.addEventListener("error", done, { once: true });
+            return;
+        }
+
+        const link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.href = href;
+        link.addEventListener("load", () => {
+            link.dataset.sgCssLoaded = "1";
+            done();
+        }, { once: true });
+        link.addEventListener("error", done, { once: true });
+        document.head.appendChild(link);
+    });
+
+    _sgHydrateCssCache.set(href, promise);
+    return promise;
+};
+
+const sgDefaultComponentCssUrl = (componentName = "") => {
+    const name = String(componentName || "").trim().toLowerCase();
+    if (!name) return "";
+    try {
+        return new URL(`../../assets/components/${name}/${name}.css`, _coreScriptUrl || window.location.href).toString();
+    } catch (_) {
+        return "";
+    }
+};
+
+const sgHydrateLoadCss = async (resultRoot, componentName = "") => {
+    if (!resultRoot) return;
+    const raw = (resultRoot.getAttribute("data-sg-hydrate-css") || "").trim();
+    const urls = raw
+        ? raw
+            .split(",")
+            .map((v) => v.trim())
+            .filter(Boolean)
+        : [];
+
+    const inferredName =
+        String(componentName || "").trim().toLowerCase() ||
+        String(resultRoot.getAttribute("name") || "").trim().toLowerCase() ||
+        ((resultRoot.getAttribute("data-sg-render-fn") || "").trim().match(/^component::([a-z_]\w*)$/i)?.[1] || "").toLowerCase();
+    const autoUrl = sgDefaultComponentCssUrl(inferredName);
+    if (autoUrl) urls.push(autoUrl);
+
+    if (!urls.length) return;
+    await Promise.all(urls.map((u) => sgEnsureStylesheet(u)));
+};
+
+const sgHydratePreview = async (resultRoot, preview, requestId) => {
+    if (!resultRoot || !preview) return;
+    const raw = (
+        resultRoot.getAttribute("data-sg-module") ||
+        resultRoot.getAttribute("data-sg-hydrate-module") ||
+        ""
+    ).trim();
+    if (!raw) return;
+
+    const url = sgResolveHydrateUrl(raw);
+    if (!url) return;
+
+    const currentId = preview.__sgHydrateRequestId;
+    if (requestId != null && currentId != null && currentId !== requestId) return;
+
+    const promise = _sgHydrateModuleCache.get(url) || import(url);
+    _sgHydrateModuleCache.set(url, promise);
+
+    try {
+        const inferredName =
+            String(resultRoot.getAttribute("name") || "").trim().toLowerCase() ||
+            ((resultRoot.getAttribute("data-sg-render-fn") || "").trim().match(/^component::([a-z_]\w*)$/i)?.[1] || "").toLowerCase();
+        await sgHydrateLoadCss(resultRoot, inferredName);
+        const mod = await promise;
+        const stillCurrent = preview.__sgHydrateRequestId;
+        if (requestId != null && stillCurrent != null && stillCurrent !== requestId) return;
+
+        const run = mod?.default;
+        if (typeof run !== "function") return;
+        const maybeCleanup = run(preview, { resultRoot, requestId });
+        const cleanup = sgCleanupFromHydratorReturn(maybeCleanup);
+        if (cleanup) _sgHydrateCleanupByPreview.set(preview, cleanup);
+    } catch (_) {
+        // Ignore hydrate errors (preview HTML remains visible).
+    }
+};
+
 class UiSummary extends HTMLElement {
     connectedCallback() {
         const label = this.innerHTML.trim();
@@ -252,7 +383,7 @@ class SgCode extends HTMLElement {
             const fromResult = (this.closest(".sg-components-builder-result")?.getAttribute("name") || "").trim();
             const componentName = explicit || fromResult;
             if (componentName) {
-                rawCode = `component:${componentName}($args)`;
+                rawCode = `component::${componentName}($args)`;
             }
         }
         if (!rawCode) {
@@ -261,8 +392,19 @@ class SgCode extends HTMLElement {
         }
 
         const syntax = (this.getAttribute("syntax") || "php").trim().toLowerCase();
-        const copyMode = (this.getAttribute("copy") || "php-short-tag").trim().toLowerCase();
-        const copyValue = copyMode === "raw" ? rawCode : `<?= ${rawCode} ?>`;
+        const copyMode = (this.getAttribute("copy") || "php-tag").trim().toLowerCase();
+        const ensureStatement = (code = "") => {
+            const v = String(code || "").trim();
+            if (!v) return "";
+            // Avoid double `;` when user already wrote one.
+            return /;\s*$/.test(v) ? v : `${v};`;
+        };
+        const copyValue = (() => {
+            if (copyMode === "raw") return rawCode;
+            if (copyMode === "php-short-tag") return `<?= ${rawCode} ?>`;
+            // default: php-tag
+            return `<?php ${ensureStatement(rawCode)} ?>`;
+        })();
 
         const wrapper = document.createElement("div");
         wrapper.className = "sg-code-wrap";
@@ -301,7 +443,7 @@ class SgBuilderResult extends HTMLElement {
 
         const inferComponentName = (raw = "") => {
             const value = String(raw || "").trim();
-            const match = value.match(/component:([a-z_]\w*)\s*\(/i);
+            const match = value.match(/component:{1,2}([a-z_]\w*)\s*\(/i);
             return (match?.[1] || "").trim();
         };
         const derivedName =
@@ -332,6 +474,12 @@ class SgBuilderResult extends HTMLElement {
         const wrapper = document.createElement("div");
         wrapper.className = "sg-components-builder-result";
         if (derivedName) wrapper.setAttribute("name", derivedName);
+        // Forward `data-sg-*` attributes (used by the generic builder/preview system).
+        Array.from(this.attributes).forEach((attr) => {
+            if (attr?.name && attr.name.startsWith("data-sg-")) {
+                wrapper.setAttribute(attr.name, attr.value || "");
+            }
+        });
         wrapper.innerHTML = `${codeHtml}${tmp.innerHTML}${renderHtml}`;
         this.replaceWith(wrapper);
     }
@@ -376,6 +524,12 @@ class SgSnippet extends HTMLElement {
     connectedCallback() {
         let rawCode = dedentSnippet(this.textContent || "");
 
+        // Some templates may HTML-escape `=>` as `=&gt;` (sometimes with an extra `;`).
+        // Normalize here so snippets always display valid JS/PHP syntax.
+        rawCode = rawCode
+            .replaceAll("=&gt;;", "=>")
+            .replaceAll("=&gt;", "=>");
+
         if (!rawCode) {
             // Auto-generate from a parent carrying data-args-json (e.g. .sg-args-var).
             const source = this.closest("[data-args-json]");
@@ -405,6 +559,11 @@ class SgSnippet extends HTMLElement {
 
         const wrapper = document.createElement("div");
         wrapper.className = "sg-code-wrap sg-code-wrap--block";
+        // Allow styling a snippet by adding classes on `<sg-snippet class="...">`.
+        // (The custom element is replaced by `wrapper`, so we forward the class list.)
+        try {
+            this.classList.forEach((c) => wrapper.classList.add(c));
+        } catch (_) { /* noop */ }
 
         const pre = document.createElement("pre");
         pre.className = "sg-code-block";
@@ -847,6 +1006,11 @@ const initBtnCodeBuilder = () => {
     if (!builders.length) return;
 
     builders.forEach((builderRoot) => {
+        // Sugar: allow `<div class="sg-components-builder" full>` to toggle the `.full` class.
+        // (Used in styleguide CSS: `.sg-components-builder.full { ... }`)
+        if (builderRoot.hasAttribute("full")) builderRoot.classList.add("full");
+        else builderRoot.classList.remove("full");
+
         const builderTarget = builderRoot.querySelector("[data-btn-builder]") || builderRoot;
         const outputWrap =
             builderTarget.querySelector?.(".sg-code-wrap") ||
@@ -855,9 +1019,36 @@ const initBtnCodeBuilder = () => {
         const outputCode = outputWrap?.querySelector("code.sg-code-inline");
         const outputCopyBtn = outputWrap?.querySelector(".sg-copy-btn");
         if (!outputCode || !outputCopyBtn) return;
-        const match = (outputCode.textContent || "").match(/component:([a-z_]\w*)\s*\(/i);
-        const componentName = (match?.[1] || "").toLowerCase();
-        if (!componentName) return;
+
+        const resultRoot =
+            outputWrap?.closest?.(".sg-components-builder-result") ||
+            builderRoot.querySelector(".sg-components-builder-result");
+        const renderFnAttr = (resultRoot?.getAttribute("data-sg-render-fn") || "").trim();
+        const renderFnFromAttr = renderFnAttr.match(/^component::([a-z_]\w*)$/i);
+        const inferFnNameFromCode = (raw = "") => {
+            const value = String(raw || "").trim();
+            const match = value.match(/component:{1,2}([a-z_]\w*)\s*\(/i);
+            return (match?.[1] || "").trim();
+        };
+        const inferredName =
+            (renderFnFromAttr?.[1] || "").trim() ||
+            String(resultRoot?.getAttribute("name") || "").trim() ||
+            inferFnNameFromCode(outputCode.textContent || "");
+        const fnName = inferredName.toLowerCase();
+        const renderFn = renderFnFromAttr ? renderFnAttr : (fnName ? `component::${fnName}` : "");
+        const renderParamsRaw = (
+            resultRoot?.getAttribute("data-sg-params") ||
+            resultRoot?.getAttribute("data-sg-render-params") ||
+            ""
+        ).trim();
+        const renderParams = renderParamsRaw
+            .split(",")
+            .map((value) => value.trim())
+            .filter((value) => /^[a-z_]\w*$/i.test(value));
+        if (!fnName || !renderParams.length) return;
+        // Auto-load component CSS when it exists: `/assets/components/<name>/<name>.css`.
+        // (404 is ignored by `sgEnsureStylesheet`.)
+        sgHydrateLoadCss(resultRoot, fnName);
 
         const preview = builderRoot.querySelector(".sg-render");
         const ajaxUrl =
@@ -866,36 +1057,36 @@ const initBtnCodeBuilder = () => {
             builderRoot.closest?.("[data-ajax-url]")?.dataset.ajaxUrl ||
             _sgAjaxUrl ||
             "";
+
         const getInput = (name) => builderRoot.querySelector(`[data-param="${name}"]`);
-        const argsInput = getInput("args");
         const argsTypeInput = builderRoot.querySelector('select[data-param="args-type"]');
         const argsInputsByType = {};
         builderRoot.querySelectorAll('[data-param="args"][data-args-type]').forEach((input) => {
             const type = input.getAttribute("data-args-type");
             if (type) argsInputsByType[type] = input;
         });
-        const classesSelectInput = builderRoot.querySelector('select[data-param="classes"]');
-        const classesTextInput = builderRoot.querySelector('input[data-param="classes"]');
-        const nameInput = getInput("name");
-        const widthInput = getInput("width");
-        const heightInput = getInput("height");
-        const linkInput = getInput("link");
-        const sizeSelectInput = builderRoot.querySelector('select[data-param="size"]');
-        const sizeTextInput = builderRoot.querySelector('input[data-param="size"]');
-        const animateInput = getInput("animate");
-        const iconInput = getInput("icon");
-        const attributesInput = getInput("attributes");
-        const hxInput = getInput("hx");
-        const itemsInput = getInput("items");
-        const cardInput = getInput("card");
-        const lazyInput = getInput("lazy");
-        const placeholderInput = getInput("placeholder");
-        const breakpointInput = getInput("breakpoint");
+        const typeInput = builderRoot.querySelector('[data-param="type"]');
+
+        const getFallbackArgsTypeFromTypeParam = () => {
+            const v = String(typeInput?.value || "").trim().toLowerCase();
+            // Special-case: Tag component uses `type=link` to switch `$args` to `$link`.
+            if (v === "link") return "var";
+            return "label";
+        };
+
+        const getEffectiveArgsType = () => {
+            if (argsTypeInput) return String(argsTypeInput.value || "").trim();
+            if (!Object.keys(argsInputsByType).length) return "";
+            const fallback = getFallbackArgsTypeFromTypeParam();
+            if (fallback && argsInputsByType[fallback]) return fallback;
+            if (argsInputsByType.label) return "label";
+            if (argsInputsByType.var) return "var";
+            return Object.keys(argsInputsByType)[0] || "";
+        };
 
         const getActiveArgsInput = () => {
-            if (!argsTypeInput) return argsInput;
-            const type = argsTypeInput.value;
-            return argsInputsByType[type] || argsInput;
+            const type = getEffectiveArgsType();
+            return argsInputsByType[type] || getInput("args");
         };
         const readArgsEl = (el) => {
             if (!el) return "";
@@ -906,11 +1097,15 @@ const initBtnCodeBuilder = () => {
             return (el.textContent || "").trim();
         };
         const getActiveArgsValue = () => readArgsEl(getActiveArgsInput());
-        const getActiveArgsType = () => argsTypeInput?.value || "";
+        const getActiveArgsType = () => getEffectiveArgsType() || "";
+        const resolveParamEl = (param) => {
+            if (param === "args" && Object.keys(argsInputsByType).length) return getActiveArgsInput();
+            return getInput(param);
+        };
 
         const syncArgsInputsVisibility = () => {
-            if (!argsTypeInput) return;
-            const type = argsTypeInput.value;
+            if (!argsTypeInput && !typeInput) return;
+            const type = getEffectiveArgsType();
             Object.entries(argsInputsByType).forEach(([key, input]) => {
                 const isActive = key === type;
                 input.hidden = !isActive;
@@ -919,42 +1114,24 @@ const initBtnCodeBuilder = () => {
             });
         };
         syncArgsInputsVisibility();
-        argsTypeInput?.addEventListener("change", syncArgsInputsVisibility);
+
         const toPhpString = (value = "") => `'${value.replaceAll("\\", "\\\\").replaceAll("'", "\\'")}'`;
         const normalizeParam = (value = "", fallback = "") => {
             const v = value.trim();
             if (!v) return fallback;
+            if (/^(null|true|false)$/i.test(v)) return v.toLowerCase();
+            if (/^-?\d+(?:\.\d+)?$/.test(v)) return v;
             // Keep advanced/php expressions as-is.
             if (/^[\[$]/.test(v) || /^\$/.test(v) || /=>/.test(v) || /::/.test(v) || /\w+\s*\(/.test(v)) return v;
             if (/^".*"$/.test(v) || /^'.*'$/.test(v)) return toPhpString(v.slice(1, -1));
             return toPhpString(v);
         };
 
-        let iconState = {
-            name: "youtube",
-            width: "24",
-            height: "24",
-            baseWidth: 24,
-            baseHeight: 24,
-            ratio: 1, // baseHeight / baseWidth
-        };
-        if (componentName === "icon") {
-            const raw = (outputCode.textContent || "").trim();
-            const m = raw.match(/component:icon\(\s*["']([^"']+)["']\s*,\s*([0-9.]+)\s*,\s*([0-9.]+)\s*(?:,|\))/i);
-            if (m) {
-                const baseWidth = Number.parseFloat(m[2]);
-                const baseHeight = Number.parseFloat(m[3]);
-                iconState.name = m[1];
-                iconState.width = String(m[2]);
-                iconState.height = String(m[3]);
-                iconState.baseWidth = Number.isFinite(baseWidth) && baseWidth > 0 ? baseWidth : 24;
-                iconState.baseHeight = Number.isFinite(baseHeight) && baseHeight > 0 ? baseHeight : 24;
-                iconState.ratio = iconState.baseWidth ? (iconState.baseHeight / iconState.baseWidth) : 1;
-            }
-        }
         let previewTimer = null;
         let previewRequestId = 0;
 
+        const classesSelectInput = builderRoot.querySelector('select[data-param="classes"]');
+        const classesTextInput = builderRoot.querySelector('input[data-param="classes"]');
         const getMergedClasses = () => {
             return [classesSelectInput?.value || "", classesTextInput?.value || ""]
                 .map((v) => v.trim())
@@ -962,6 +1139,8 @@ const initBtnCodeBuilder = () => {
                 .join(" ");
         };
 
+        const sizeSelectInput = builderRoot.querySelector('select[data-param="size"]');
+        const sizeTextInput = builderRoot.querySelector('input[data-param="size"]');
         const getMergedSize = () => {
             const select = typeof sizeSelectInput?.value === "string" ? sizeSelectInput.value.trim() : "";
             const text = typeof sizeTextInput?.value === "string" ? sizeTextInput.value.trim() : "";
@@ -974,77 +1153,48 @@ const initBtnCodeBuilder = () => {
             previewTimer = setTimeout(async () => {
                 const requestId = ++previewRequestId;
                 const body = new URLSearchParams();
-                body.set("classes", getMergedClasses());
+                body.set("action", "sg_preview_component");
+                body.set("render_fn", renderFn);
+                body.set("render_params", renderParams.join(","));
 
-                if (componentName === "btn") {
-                    const activeType = getActiveArgsType();
-                    const argsForPreview = getActiveArgsValue();
-                    body.set("action", "sg_preview_btn");
-                    body.set("args", argsForPreview);
-                    if (activeType) body.set("args_type", activeType);
-                    if (activeType === "var") {
-                        const varEl = argsInputsByType.var;
-                        const argsJson = varEl?.getAttribute("data-args-json") || "";
-                        if (argsJson) body.set("args_json", argsJson);
-                    }
-                    body.set("icon", iconInput?.value || "");
-                    body.set("attributes", attributesInput?.value || "");
-                } else if (componentName === "title") {
-                    const activeType = getActiveArgsType();
-                    const argsForPreview = getActiveArgsValue();
-                    body.set("action", "sg_preview_title");
-                    body.set("args", argsForPreview);
-                    if (activeType) body.set("args_type", activeType);
-                    if (activeType === "var") {
-                        const varEl = argsInputsByType.var;
-                        const argsJson = varEl?.getAttribute("data-args-json") || "";
-                        if (argsJson) body.set("args_json", argsJson);
-                    }
-                    body.set("hx", hxInput?.value || "");
-                } else if (componentName === "list") {
-                    body.set("action", "sg_preview_list");
-                    body.set("items", itemsInput?.value || "");
-                    body.set("card", cardInput?.value || "");
-                } else if (componentName === "picture") {
-                    const activeType = getActiveArgsType();
-                    let argsForPreview = getActiveArgsValue();
-                    if (activeType === "src" && !argsForPreview) {
-                        argsForPreview = argsInputsByType.src?.placeholder || "";
-                    }
-                    body.set("action", "sg_preview_picture");
-                    body.set("args", argsForPreview);
-                    body.set("args_type", activeType);
-                    if (activeType === "var") {
-                        const varEl = argsInputsByType.var;
-                        const argsJson = varEl?.getAttribute("data-args-json") || "";
-                        if (argsJson) body.set("args_json", argsJson);
-                    }
-                    body.set("lazy", lazyInput?.checked ? "1" : "0");
-                    body.set("placeholder", placeholderInput?.checked ? "1" : "0");
-                    body.set("breakpoint", breakpointInput?.value || "");
-                } else if (componentName === "picto") {
-                    body.set("action", "sg_preview_picto");
-                    body.set("name", nameInput?.value || "");
-                    body.set("size", getMergedSize());
-                    body.set("animate", animateInput?.checked ? "1" : "0");
-                } else if (componentName === "icon") {
-                    const nameValue = (nameInput?.value || iconState.name || "").trim();
-                    const widthValue = (widthInput?.value || iconState.width || "24").toString().trim();
-                    const heightValue = (heightInput?.value || iconState.height || "24").toString().trim();
-                    body.set("action", "sg_preview_icon");
-                    body.set("name", nameValue);
-                    body.set("width", widthValue);
-                    body.set("height", heightValue);
-                } else if (componentName === "link") {
-                    body.set("action", "sg_preview_link");
-                    const linkJson = linkInput?.getAttribute?.("data-link-json") || "";
-                    if (linkJson) body.set("link_json", linkJson);
-                    body.set("classes", getMergedClasses());
-                    body.set("icon", iconInput?.value || "");
-                    body.set("attributes", attributesInput?.value || "");
-                } else {
-                    return;
+                const payload = {};
+                if (argsTypeInput) {
+                    payload.args_type = (argsTypeInput.value || "").trim();
                 }
+                renderParams.forEach((param) => {
+                    if (param === "classes") {
+                        payload[param] = getMergedClasses();
+                        return;
+                    }
+                    if (param === "size") {
+                        payload[param] = getMergedSize();
+                        return;
+                    }
+
+                    const el = resolveParamEl(param);
+                    if (el instanceof HTMLInputElement && el.type === "checkbox") {
+                        payload[param] = !!el.checked;
+                    } else if (param === "args" && argsTypeInput) {
+                        payload[param] = getActiveArgsValue();
+                    } else {
+                        payload[param] = readArgsEl(el);
+                    }
+
+                    const argsJson = el?.getAttribute?.("data-args-json") || "";
+                    if (argsJson) payload[`${param}_json`] = argsJson;
+
+                    const jsonEl = builderRoot.querySelector(`[data-param="${param}_json"]`);
+                    if (jsonEl) {
+                        if (jsonEl instanceof HTMLInputElement || jsonEl instanceof HTMLTextAreaElement || jsonEl instanceof HTMLSelectElement) {
+                            const v = (jsonEl.value || "").trim();
+                            if (v) payload[`${param}_json`] = v;
+                        } else {
+                            const v = (jsonEl.getAttribute?.("data-args-json") || jsonEl.textContent || "").trim();
+                            if (v) payload[`${param}_json`] = v;
+                        }
+                    }
+                });
+                body.set("payload_json", JSON.stringify(payload));
 
                 try {
                     const response = await fetch(ajaxUrl, {
@@ -1057,7 +1207,19 @@ const initBtnCodeBuilder = () => {
                     const json = await response.json();
                     if (requestId !== previewRequestId) return;
                     if (json?.success && typeof json.data?.html === "string") {
+                        // Cleanup previous interactive modules before DOM replacement.
+                        try {
+                            const cleanup = _sgHydrateCleanupByPreview.get(preview);
+                            if (typeof cleanup === "function") cleanup();
+                        } catch (_) { /* noop */ }
+                        _sgHydrateCleanupByPreview.delete(preview);
+
+                        preview.__sgHydrateRequestId = requestId;
                         preview.innerHTML = json.data.html;
+                        // (Async) load CSS even when no JS module is declared.
+                        sgHydrateLoadCss(resultRoot, fnName);
+                        // (Async) hydrate preview if a module is declared on the builder result root.
+                        sgHydratePreview(resultRoot, preview, requestId);
                     }
                 } catch (_) {
                     // Keep previous preview output on request failure.
@@ -1065,158 +1227,150 @@ const initBtnCodeBuilder = () => {
             }, 150);
         };
 
+        const getParamDefaultToken = (param) => {
+            if (!param) return "";
+            if (param === "classes" || param === "size") return "";
+            if (param === "args") return "";
+            const el = getInput(param);
+            const raw = (
+                el?.getAttribute?.("data-default") ||
+                el?.getAttribute?.("data-sg-default") ||
+                ""
+            ).trim();
+            if (!raw) return "";
+            return normalizeParam(raw, "");
+        };
+
+        const trimTrailingOptionalParams = (params, defaults = []) => {
+            const out = [...params];
+            while (out.length) {
+                const i = out.length - 1;
+                const last = out[i];
+                const def = defaults[i] || "";
+                if (last === "null" || last === "false" || (def && last === def)) {
+                    out.pop();
+                    continue;
+                }
+                break;
+            }
+            return out;
+        };
+
         const buildCall = () => {
-            const activeArgsType = getActiveArgsType();
-            const activeArgsRaw = getActiveArgsValue();
-            const argsValue = activeArgsType === "var"
-                ? (activeArgsRaw || "$args")
-                : normalizeParam(activeArgsRaw, "$args");
-            const classesValue = normalizeParam(getMergedClasses());
-            let signature = "";
+            const mergedClassesValue = normalizeParam(getMergedClasses(), "null");
+            const defaults = renderParams.map((param) => getParamDefaultToken(param));
+            let signature;
 
-            if (componentName === "btn") {
-                const iconValue = normalizeParam((iconInput?.value || "").trim());
-                const attributesValue = normalizeParam((attributesInput?.value || "").trim());
-                const params = [argsValue];
-                if (classesValue) params.push(classesValue);
-                if (iconValue) params.push(iconValue);
-                if (attributesValue) params.push(attributesValue);
-                signature = `component:btn(${params.join(", ")})`;
-            } else if (componentName === "title") {
-                const hxRaw = (hxInput?.value || "").trim();
-                const hxValue = /^\d+$/.test(hxRaw) ? hxRaw : "";
-                const argsRaw = getActiveArgsValue();
-                const argsType = getActiveArgsType();
-                const titleArgsValue = argsType === "var"
-                    ? (argsRaw || "$args")
-                    : normalizeParam(argsRaw, "'Lorem ipsum dolor sit amet'");
-                const params = [titleArgsValue];
-                if (hxValue) params.push(hxValue);
-                if (classesValue) {
-                    if (!hxValue) params.push("2");
-                    params.push(classesValue);
-                }
-                signature = `component:title(${params.join(", ")})`;
-            } else if (componentName === "list") {
-                const itemsValue = normalizeParam((itemsInput?.value || "").trim(), "$items");
-                const cardValue = normalizeParam((cardInput?.value || "").trim());
-                const params = [itemsValue];
-                if (cardValue) params.push(cardValue);
-                if (classesValue) {
-                    if (!cardValue) params.push("'news'");
-                    params.push(classesValue);
-                }
-                signature = `component:list(${params.join(", ")})`;
-            } else if (componentName === "picture") {
-                const argsRaw = getActiveArgsValue();
-                const argsType = getActiveArgsType();
-                let pictureArgsValue;
-                if (argsType === "id") {
-                    pictureArgsValue = /^\d+$/.test(argsRaw) ? argsRaw : "460";
-                } else if (argsType === "src") {
-                    const srcInput = argsInputsByType.src;
-                    const rawInput = argsRaw || srcInput?.placeholder || "img/image.jpg";
-                    // If user already typed a THEME_ASSETS expression, keep it as-is.
-                    if (/^THEME_ASSETS\b/.test(rawInput)) {
-                        pictureArgsValue = rawInput;
-                    } else {
-                        const cleanPath = rawInput
-                            .replace(/^\s*['"]/, "")
-                            .replace(/['"]\s*$/, "")
-                            .replaceAll('"', '\\"');
-                        pictureArgsValue = `THEME_ASSETS . "${cleanPath}"`;
-                    }
-                } else if (argsType === "var") {
-                    pictureArgsValue = argsRaw || "$args";
-                } else {
-                    pictureArgsValue = /^\d+$/.test(argsRaw)
-                        ? argsRaw
-                        : normalizeParam(argsRaw, "$args");
-                }
-                const lazyChecked = !!lazyInput?.checked;
-                const placeholderChecked = !!placeholderInput?.checked;
-                const breakpointRaw = (breakpointInput?.value || "").trim();
-                const breakpointValue = /^\d+$/.test(breakpointRaw) ? breakpointRaw : "";
-
-                const params = [pictureArgsValue];
-                const needLazy = !lazyChecked;
-                const needPlaceholder = placeholderChecked;
-                const needBreakpoint = breakpointValue && breakpointValue !== "768";
-                const needClasses = !!classesValue;
-
-                if (needClasses || needLazy || needPlaceholder || needBreakpoint) {
-                    params.push(classesValue || "''");
-                }
-                if (needLazy || needPlaceholder || needBreakpoint) {
-                    params.push(lazyChecked ? "true" : "false");
-                }
-                if (needPlaceholder || needBreakpoint) {
-                    params.push(placeholderChecked ? "true" : "false");
-                }
-                if (needBreakpoint) {
-                    params.push(breakpointValue);
-                }
-                signature = `component:picture(${params.join(", ")})`;
-            } else if (componentName === "picto") {
-                const nameValue = normalizeParam((nameInput?.value || "").trim(), "'youtube'");
-                const sizeRaw = getMergedSize();
-                const sizeValue = normalizeParam(sizeRaw);
-                const animateChecked = !!animateInput?.checked;
-
-                const params = [nameValue];
-                if (sizeValue) {
-                    params.push(sizeValue);
-                }
-                if (animateChecked) {
-                    if (!sizeValue) params.push("''");
-                    params.push("true");
-                }
-                signature = `component:picto(${params.join(", ")})`;
-            } else if (componentName === "icon") {
-                const nameRaw = (nameInput?.value || iconState.name || "").trim();
-                const widthRaw = (widthInput?.value || iconState.width || "24").toString().trim();
-                const heightRaw = (heightInput?.value || iconState.height || "24").toString().trim();
-                const nameValue = normalizeParam(nameRaw, "'youtube'");
-                const widthValue = /^\d+$/.test(widthRaw) ? widthRaw : "24";
-                const heightValue = /^\d+$/.test(heightRaw) ? heightRaw : "24";
-                const classesValue = normalizeParam(getMergedClasses());
-                const params = [nameValue, widthValue, heightValue];
-                if (classesValue) params.push(classesValue);
-                signature = `component:icon(${params.join(", ")})`;
-            } else if (componentName === "link") {
-                const linkRaw = (linkInput?.value || "").trim();
-                const linkValue = normalizeParam(linkRaw, "$link");
-                const classesValue = normalizeParam(getMergedClasses());
-                const iconValue = normalizeParam((iconInput?.value || "").trim());
-                const attributesValue = normalizeParam((attributesInput?.value || "").trim());
-
-                const params = [linkValue];
-                if (classesValue || iconValue || attributesValue) {
-                    params.push(classesValue || "null");
-                }
-                if (iconValue || attributesValue) {
-                    if (!classesValue && !params[1]) params.push("null");
-                    params.push(iconValue || "null");
-                }
-                if (attributesValue) {
-                    // If we have attributes but no icon/classes, ensure placeholders exist.
-                    if (params.length === 1) params.push("null");
-                    if (params.length === 2) params.push("null");
-                    params.push(attributesValue);
-                }
-                signature = `component:link(${params.join(", ")})`;
+            if (fnName === "dialog") {
+                const pContent = normalizeParam(readArgsEl(getInput("content")), "null");
+                const typeEl = getInput("type");
+                const tType = String(typeEl?.value || "btn").trim().toLowerCase();
+                const typeToken = tType === "link" ? "'link'" : "'btn'";
+                const nameRaw = readArgsEl(getInput("trigger_name"));
+                const nameToken = nameRaw.trim() === "" ? "null" : normalizeParam(nameRaw, "null");
+                const clsRaw = readArgsEl(getInput("trigger_classes"));
+                const clsToken = clsRaw.trim() === "" ? "null" : normalizeParam(clsRaw, "null");
+                const triggerArr = `[${typeToken}, ${nameToken}, ${clsToken}]`;
+                const pClasses = mergedClassesValue || "null";
+                const pAttrs = normalizeParam(readArgsEl(getInput("attributes")), "null");
+                const dialogParams = trimTrailingOptionalParams(
+                    [pContent, triggerArr, pClasses, pAttrs],
+                    ["", "", "null", "null"]
+                );
+                signature = `component::${fnName}(${dialogParams.join(", ")})`;
             } else {
-                return;
+                const params = renderParams.map((param) => {
+                    if (param === "classes") {
+                        return mergedClassesValue || "null";
+                    }
+                    if (param === "size") {
+                        const sizeValue = normalizeParam(getMergedSize(), "null");
+                        return sizeValue || "null";
+                    }
+                    if (param === "args" && argsTypeInput) {
+                        const type = getActiveArgsType();
+                        const raw = getActiveArgsValue();
+                        return type === "var" ? (raw || "$args") : normalizeParam(raw, "$args");
+                    }
+                    const el = resolveParamEl(param);
+                    if (el instanceof HTMLInputElement && el.type === "checkbox") {
+                        return el.checked ? "true" : "false";
+                    }
+                    return normalizeParam(readArgsEl(el), "null");
+                });
+
+                const normalizedParams = trimTrailingOptionalParams(params, defaults);
+                signature = `component::${fnName}(${normalizedParams.join(", ")})`;
             }
 
             outputCode.textContent = signature;
             outputCode.dataset.highlighted = "0";
             highlightPhpInlineCode(outputCode);
-            outputCopyBtn.dataset.copy = `<?= ${signature} ?>`;
+            outputCopyBtn.dataset.copy = `<?php ${signature}; ?>`;
             updatePreview();
         };
 
-        if (componentName === "icon") {
+        const initArrayCheckboxGroup = (param) => {
+            const group = builderRoot.querySelector(`[data-sg-array="${CSS.escape(param)}"]`);
+            if (!group) return;
+
+            const phpEl = builderRoot.querySelector(`input[data-param="${CSS.escape(param)}"], textarea[data-param="${CSS.escape(param)}"]`);
+            const jsonEl = builderRoot.querySelector(`input[data-param="${CSS.escape(param)}_json"], textarea[data-param="${CSS.escape(param)}_json"]`);
+            if (!phpEl && !jsonEl) return;
+
+            const checkboxes = Array.from(group.querySelectorAll('input[type="checkbox"][value]'));
+            if (!checkboxes.length) return;
+
+            const sync = () => {
+                const values = checkboxes
+                    .filter((cb) => cb instanceof HTMLInputElement && cb.checked)
+                    .map((cb) => String(cb.value || "").trim())
+                    .filter(Boolean);
+
+                const phpLiteral = `[${values.map((v) => toPhpString(v)).join(", ")}]`;
+                const jsonLiteral = JSON.stringify(values);
+
+                if (phpEl && "value" in phpEl) phpEl.value = phpLiteral;
+                if (jsonEl && "value" in jsonEl) jsonEl.value = jsonLiteral;
+            };
+
+            checkboxes.forEach((cb) => {
+                cb.addEventListener("change", () => {
+                    sync();
+                    buildCall();
+                });
+            });
+
+            sync();
+        };
+        renderParams.forEach(initArrayCheckboxGroup);
+
+        if (fnName === "icon") {
+            const nameInput = getInput("name");
+            const widthInput = getInput("width");
+            const heightInput = getInput("height");
+
+            let iconState = {
+                name: "youtube",
+                width: "24",
+                height: "24",
+                baseWidth: 24,
+                baseHeight: 24,
+                ratio: 1, // baseHeight / baseWidth
+            };
+            const raw = (outputCode.textContent || "").trim();
+            const m = raw.match(/component:{1,2}icon\(\s*["']([^"']+)["']\s*,\s*([0-9.]+)\s*,\s*([0-9.]+)\s*(?:,|\))/i);
+            if (m) {
+                const baseWidth = Number.parseFloat(m[2]);
+                const baseHeight = Number.parseFloat(m[3]);
+                iconState.name = m[1];
+                iconState.width = String(m[2]);
+                iconState.height = String(m[3]);
+                iconState.baseWidth = Number.isFinite(baseWidth) && baseWidth > 0 ? baseWidth : 24;
+                iconState.baseHeight = Number.isFinite(baseHeight) && baseHeight > 0 ? baseHeight : 24;
+                iconState.ratio = iconState.baseWidth ? (iconState.baseHeight / iconState.baseWidth) : 1;
+            }
+
             let iconSyncing = false;
 
             const normalizePositiveInt = (value, fallback = 24) => {
@@ -1298,6 +1452,7 @@ const initBtnCodeBuilder = () => {
                     const w = (btn.getAttribute("data-icon-w") || "").trim();
                     const h = (btn.getAttribute("data-icon-h") || "").trim();
                     if (id) iconState.name = id;
+                    if (id && nameInput) nameInput.value = id;
                     if (w && h) {
                         setIconBaseDims(w, h);
                         setIconCurrentDims(w, h);
@@ -1307,30 +1462,21 @@ const initBtnCodeBuilder = () => {
             });
         }
 
-        [
-            argsInput,
-            argsTypeInput,
-            ...Object.values(argsInputsByType),
-            classesSelectInput,
-            classesTextInput,
-            nameInput,
-            widthInput,
-            heightInput,
-            linkInput,
-            sizeSelectInput,
-            sizeTextInput,
-            animateInput,
-            iconInput,
-            attributesInput,
-            hxInput,
-            itemsInput,
-            cardInput,
-            lazyInput,
-            placeholderInput,
-            breakpointInput,
-        ].forEach((input) => {
-            input?.addEventListener("input", buildCall);
-            input?.addEventListener("change", buildCall);
+        // Watch every `data-param` control (new components should not require JS edits).
+        builderRoot.querySelectorAll('input[data-param], select[data-param], textarea[data-param]').forEach((el) => {
+            el.addEventListener("input", buildCall);
+            el.addEventListener("change", buildCall);
+        });
+
+        // args-type affects which args control is active.
+        argsTypeInput?.addEventListener("change", () => {
+            syncArgsInputsVisibility();
+            buildCall();
+        });
+
+        // Some components (e.g. tag) switch `$args` based on another control (`type`).
+        typeInput?.addEventListener("change", () => {
+            syncArgsInputsVisibility();
         });
 
         buildCall();

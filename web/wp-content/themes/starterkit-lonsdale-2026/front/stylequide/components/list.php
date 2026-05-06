@@ -1,8 +1,6 @@
 <?php
-$card_news = isset($card_news) && is_array($card_news) ? $card_news : [
-    "title" => "Lorem ipsum dolor sit amet",
-    "images" => ["desktop" => 460],
-];
+$items = (isset($items) && is_array($items)) ? $items : [];
+
 ?>
 
 <sg-part type="component" tag="html" label="List" name="list">
@@ -22,32 +20,19 @@ $card_news = isset($card_news) && is_array($card_news) ? $card_news : [
 
             <tbody>
                 <tr>
-                    <td><strong>items</strong></td>
-                    <td>
-                        <p>Tableau de cards</p>
-                    </td>
-                    <td>
-                        <input type="hidden" data-param="items" placeholder='$items'>
-                        <sg-snippet no-copy>
-                            $items = 
-                            [
-                                [
-                                    "title" => "Lorem ipsum dolor sit amet",
-                                    "images" => ["desktop" => 460]
-                                ],
-                                [
-                                    "title" => "Lorem ipsum dolor sit amet",
-                                    "images" => ["desktop" => 460]
-                                ],
-                            ]
-                        </sg-snippet>
+                    <td>items</td>
+                    <td>Tableau de cards</td>
+                    <td class="sg-table-value">
+                        <span class="sg-args-var" data-param="items" data-args-type="var"
+                            data-args-value="$items"
+                            data-args-json='<?= esc_attr(wp_json_encode($items)) ?>'>
+                            <sg-snippet no-copy></sg-snippet>
+                        </span>
                     </td>
                 </tr>
                 <tr>
-                    <td><strong>card</strong></td>
-                    <td>
-                        <p>Type de carte</p>
-                    </td>
+                    <td>card</td>
+                    <td>Type de carte</td>
                     <td>
                         <select data-param="card">
                             <option value="news" selected>news</option>
@@ -55,17 +40,18 @@ $card_news = isset($card_news) && is_array($card_news) ? $card_news : [
                     </td>
                 </tr>
                 <tr>
-                    <td><strong>classes</strong></td>
-                    <td>
-                        <p>Classes optionnelles</p>
-                    </td>
-                    <td>
+                    <td>classe</td>
+                    <td>Classes optionnelles</td>
+                    <td class="sg-table-value">
                         <input type="text" data-param="classes" placeholder='ma class'>
                     </td>
                 </tr>
             </tbody>
         </table>
 
-        <sg-builder-result code="component:list([$card_news, $card_news], 'news', 'sg-list')"></sg-builder-result>
+        <sg-builder-result
+            code="component:list($items, 'news', 'sg-list')"
+            data-sg-params="items,card,classes"
+        ></sg-builder-result>
     </div>
 </sg-part>

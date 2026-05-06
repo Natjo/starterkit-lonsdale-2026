@@ -252,9 +252,23 @@ const core = {
             return;
         }
 
-        result = result.replace(".js", '');
-
-        res = result.replace(/(import[ {}'".\/a-zA-Z0-9_,@-]+)(['"])/igm, `$1.js?v=${version}$2`);
+        // Append a cache-busting query to ESM import specifiers.
+        // - If the specifier already ends with `.js`, only append `?v=...`
+        // - Otherwise append `.js?v=...`
+        // Avoids the previous behavior where `.js` could be appended twice.
+        res = result.replace(
+            /(import\s+[^'"]*?\sfrom\s*)(['"])([^'"]+)(\2)/g,
+            (match, before, quote, spec, endQuote) => {
+                // Ignore remote URLs / data URLs.
+                if (/^(https?:|data:)/i.test(spec)) return match;
+                // Already has a query string: leave it as-is.
+                if (spec.includes("?")) return match;
+                if (spec.endsWith(".js")) {
+                    return `${before}${quote}${spec}?v=${version}${endQuote}`;
+                }
+                return `${before}${quote}${spec}.js?v=${version}${endQuote}`;
+            }
+        );
 
         result = babel.transform(res, {
             minified: true,

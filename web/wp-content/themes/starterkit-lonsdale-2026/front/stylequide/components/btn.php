@@ -31,14 +31,13 @@ $icons_list = isset($icons_list) && is_array($icons_list) ? $icons_list : [];
                         <input type="text" data-param="args" data-args-type="src" value="Je suis un bouton">
                         <span class="sg-args-var" data-param="args" data-args-type="var"
                             data-args-value="$args"
-                            data-args-json='
-                                    <?= esc_attr(json_encode([
-                                        "link" => [
-                                            "title" => "See more",
-                                            "url"  => "",
-                                            "target" => "",
-                                        ],
-                                    ])) ?>' hidden>
+                            data-args-json='<?= esc_attr(wp_json_encode([
+                                "link" => [
+                                    "title" => "See more",
+                                    "url"  => "",
+                                    "target" => "",
+                                ],
+                            ])) ?>' hidden>
                             <sg-snippet no-copy></sg-snippet>
                         </span>
 
@@ -60,20 +59,23 @@ $icons_list = isset($icons_list) && is_array($icons_list) ? $icons_list : [];
                 <tr>
                     <td>icon</td>
                     <td>Icône optionnelle</td>
-                    <td>
+                    <td class="sg-table-value">
                         <?php if (function_exists('getIcons')) getIcons($icons_list); ?>
                     </td>
                 </tr>
                 <tr>
                     <td>attributes</td>
                     <td>Attributs optionnels</td>
-                    <td>
+                    <td class="sg-table-value">
                         <input type="text" data-param="attributes" placeholder='aria-hidden="true"'>
                     </td>
                 </tr>
             </tbody>
         </table>
 
-        <sg-builder-result code="component:btn('Se more', 'btn-primary')"></sg-builder-result>
+        <sg-builder-result
+            code="component:btn('Je suis un bouton', 'btn-1')"
+            data-sg-params="args,classes,icon,attributes"
+        ></sg-builder-result>
     </div>
 </sg-part>

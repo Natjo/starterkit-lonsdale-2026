@@ -1,5 +1,5 @@
 
 <div class="card-news">
    <a href="/contact">
-   <?= component::picture($args) ?></a>
+   <?php component::picture($args) ?></a>
 </div>

@@ -156,7 +156,7 @@ if (!function_exists('sg_component')) {
      * Include a styleguide component partial from `front/stylequide/components/`.
      * Usage: sg_component('btn')
      */
-    function sg_component(string $name): void
+    function sg_component(string $name, $context = null): void
     {
         $name = trim($name);
         if ($name === '' || !preg_match('/^[a-z0-9_-]+$/i', $name)) return;
@@ -164,6 +164,27 @@ if (!function_exists('sg_component')) {
         // Make common styleguide vars available to the included partial.
         // (Included files inherit the local function scope.)
         global $icons_list;
+
+        // Optional: pass data to the partial.
+        // - `sg_component('accordion', $items)` exposes `$items` in the partial.
+        // - `sg_component('foo', ['items' => $items, 'bar' => $bar])` exposes named locals.
+        if ($context !== null) {
+            if (is_array($context)) {
+                $is_list = true;
+                $i = 0;
+                foreach ($context as $k => $_v) {
+                    if ($k !== $i) { $is_list = false; break; }
+                    $i++;
+                }
+                if (!$is_list) {
+                    extract($context, EXTR_SKIP);
+                } else {
+                    $items = $context;
+                }
+            } else {
+                $items = $context;
+            }
+        }
 
         $path = __DIR__ . '/components/' . $name . '.php';
         if (!file_exists($path)) return;

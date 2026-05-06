@@ -19,8 +19,13 @@ $icons_list = isset($icons_list) && is_array($icons_list) ? $icons_list : [];
     <div class="sg-components-builder">
         <?php sgIcons($icons_list); ?>
 
-        <sg-builder-result code="component:icon('youtube', 24, 24)">
+        <sg-builder-result
+            code="component:icon('youtube', 24, 24)"
+            data-sg-params="name,width,height,classes">
+            
             <div class="sg-components-builder-adjust">
+
+                <input type="hidden" data-param="name" value="youtube">
                 <div>
                     <label>Width</label>
                     <input type="number" data-param="width" placeholder="24" min="1" step="1" inputmode="numeric">
@@ -34,6 +39,7 @@ $icons_list = isset($icons_list) && is_array($icons_list) ? $icons_list : [];
                     <input type="text" data-param="classes" placeholder="classes">
                 </div>
             </div>
+
         </sg-builder-result>
     </div>
 </sg-part>

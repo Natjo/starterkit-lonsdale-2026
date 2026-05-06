@@ -2,20 +2,20 @@
 $navigation  = !empty($args["navigation"]) ? true : false;
 $pagination  = !empty($args["pagination"]) ? true : false;
 $classes     = !empty($args["classes"]) ? " " . $args["classes"] : "";
-$label       = !empty($args["label"]) ? $args["label"] : __("Carrousel", "starterkit");
+$label       = !empty($args["label"]) ? ' aria-label="'. esc_attr($args["label"]) .'"' : "";
 $slider_id   = "slider-" . wp_unique_id();
 $status_id   = $slider_id . "-status";
 ?>
 
-<div class="slider<?= $classes ?>" role="region" aria-label="<?= esc_attr($label) ?>">
+<div class="slider<?= $classes ?>" role="region" <?= $label ?>>
 
     <?php if ($navigation) : ?>
         <div class="slider-navigation" aria-hidden="true">
             <button class="slider-btn prev" tabindex="-1">
-                <?= component::icon("prev", 8, 12.57) ?>
+                <?php component::icon("prev", 8, 12.57) ?>
             </button>
             <button class="slider-btn next" tabindex="-1">
-                <?= component::icon("next", 8, 12.57) ?>
+                <?php component::icon("next", 8, 12.57) ?>
             </button>
         </div>
     <?php endif ?>
@@ -24,7 +24,7 @@ $status_id   = $slider_id . "-status";
         <ul class="slider-content" role="list" aria-label="<?= esc_attr($label) ?>" datad-lenis-prevent-wheel>
             <?php foreach ($args["items"] as $item) : ?>
                 <li class="item">
-                    <?= component::card($args["card"], $item) ?>
+                    <?php component::card($args["card"], $item) ?>
                 </li>
             <?php endforeach ?>
         </ul>

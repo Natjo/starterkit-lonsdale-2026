@@ -1,16 +1,16 @@
 <?php
-$classes = !empty($args["classes"]) ? " " . $args["classes"] : "";
-$card = !empty($args["card"]) ? $args["card"] : "card-news";
-?>
-<ul class="list<?= $classes ?>">
-    <?php foreach ($args["items"] as $item) : ?>
-        <li>
-            <?php if (is_array($item)) : ?>
-                <?= component::card($card, $item) ?>
-            <?php else : ?>
-                <?= esc_html((string) $item) ?>
-            <?php endif ?>
-        </li>
-    <?php endforeach ?>
-</ul>
+$args = (isset($args) && is_array($args)) ? $args : [];
+$items = !empty($args["items"]) && is_array($args["items"]) ? $args["items"] : [];
+$card = !empty($args["card"]) ? (string) $args["card"] : "news";
+$classes = !empty($args["classes"]) ? " " . (string) $args["classes"] : "";
 
+if (empty($items)) return;
+?>
+
+<ul class="list<?= esc_attr($classes) ?>" role="list">
+    <?php foreach ($items as $item) : ?>
+        <li class="item">
+            <?php component::card($card, $item) ?>
+        </li>
+    <?php endforeach; ?>
+</ul>

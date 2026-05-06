@@ -43,7 +43,7 @@ if (visibleModules.length) {
     const io = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (!entry.isIntersecting) return;
-            const { el, name } = entry.target._moduleInfo;
+            const { el, name } = entry.target._moduleInfo;  
             loadModule(name).then(e => e?.default?.(el));
             io.unobserve(entry.target);
         });

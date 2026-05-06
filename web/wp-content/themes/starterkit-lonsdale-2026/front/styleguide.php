@@ -7,17 +7,13 @@ Template Name: Front styleguide
 <?php include __DIR__ . '/stylequide/common/header.php'; ?>
 
 <?php
-    // cards
-    $card_news = [
-        "title"  => "Lorem ipsum dolor sit amet",
-        "images" => ["desktop" => 460]
-    ];
+// cards
+$card_news = [
+    "title"  => "Lorem ipsum dolor sit amet",
+    "images" => ["desktop" => 460]
+];
 
-    $link = [
-        "title" => "Lorem ipsum",
-        "url" => "/",
-        "target" => "",
-    ];
+
 ?>
 
 <main id="main" role="main" class="styleguide">
@@ -34,6 +30,8 @@ Template Name: Front styleguide
         <?php sg_style('backgrounds'); ?>
 
         <?php sg_style('layout'); ?>
+
+        <?php sg_style('form'); ?>
 
     </sg-section>
 
@@ -54,14 +52,60 @@ Template Name: Front styleguide
 
         <?php sg_component('picto'); ?>
 
-        <?php sg_component('accordion'); ?>
+        <?php sg_component('dialog'); ?>
+
+        <?php sg_component('shares'); ?>
+
+        <?php sg_component('navanchor'); ?>
+
+        <?php sg_component('video'); ?>
+
+        <?php sg_component('tooltip'); ?>
+
+        <?php sg_component('tab'); ?>
+
+        <?php sg_component('select'); ?>
+        
+        <?php
+
+        sg_component('accordion', [
+            [
+                "title" => "Lorem ipsum dolor",
+                "text" => "Lorem ipsum dolor sit amet",
+            ],
+            [
+                "title" => "Lorem ipsum dolor",
+                "text" => "Lorem ipsum dolor sit amet",
+            ],
+        ]);
+        ?>
 
         <?php sg_component('picture'); ?>
 
-        <?php sg_component('list'); ?>
+        <?php
+        sg_component('list', [$card_news, $card_news]);
+        ?>
 
-        <?php sg_component('slider'); ?>
+        <?php
+        sg_component('slider', [
+            [
+                "title" => "Lorem ipsum dolor sit amet",
+                "images" => ["desktop" => 417],
+            ],
+            [
+                "title" => "Lorem ipsum dolor sit amet #2",
+                "images" => ["desktop" => 417],
+            ],
+            [
+                "title" => "Lorem ipsum dolor sit amet #3",
+                "images" => ["desktop" => 417],
+            ],
+        ]);
+        ?>
 
+        <!-- combobox https://www.w3.org/WAI/ARIA/apg/patterns/combobox/ -->
+
+        <!-- disclosure https://www.w3.org/WAI/ARIA/apg/patterns/disclosure/examples/disclosure-navigation/ -->
     </sg-section>
 
     <!-- Cards -->
@@ -86,6 +130,16 @@ Template Name: Front styleguide
         <?php sg_strate('text'); ?>
 
         <?php sg_strate('slider'); ?>
+
+       <!--  text image -->
+
+       <!--  chiffres clés -->
+
+        <!-- medias -->
+
+        <!-- image -->
+
+
 
     </sg-section>
 
