@@ -3,7 +3,7 @@ $icons_refresh_notice = isset($icons_refresh_notice) ? (string) $icons_refresh_n
 $icons_list = isset($icons_list) && is_array($icons_list) ? $icons_list : [];
 ?>
 
-<sg-part type="component" tag="html,css" label="Icons" name="icons" action="refresh">
+<sg-part type="component" tag="html" label="Icons" name="icons" action="refresh">
 
     <form data-sg-action="refresh" method="post" class="sg-action sg-refresh-icons-form">
         <button type="submit" name="refresh_icons_manifest" value="1" class="sg-refresh-icons-btn">Refresh icons</button>

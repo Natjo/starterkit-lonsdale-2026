@@ -157,7 +157,15 @@ class component
         ]);
     }
 
-
+    public static function autocomplete($items, $label, $classes = null, $attributes = null)
+    {
+        if (empty($items) || !is_array($items)) return;
+        addStyle("autocomplete", "components");
+        get_template_part('template-parts/components/autocomplete', '', [
+            "items" => $items,
+            "label" => $label,
+        ]);
+    }
 
 
     /**
@@ -176,6 +184,7 @@ class component
             "attributes" => $attributes,
         ]);
     }
+
     public static function badge($name, $classes = null, $attributes = null)
     {
         if (empty($name)) return;
@@ -228,7 +237,20 @@ class component
         get_template_part('template-parts/components/shares', '', $args);
     }
 
-
+    public static function video($url, $title = "", $poster = null, $autoplay = false, $loop = false, $classes = null, $attributes = null)
+    {
+        if (empty($url)) return;
+        addStyle("video", "components");
+        get_template_part('template-parts/components/video', '', [
+            "url" => $url,
+            "title" => $title,
+            "poster" => $poster,
+            "autoplay" => $autoplay,
+            "loop" => $loop,
+            "classes" => $classes,
+            "attributes" => $attributes,
+        ]);
+    }
 
     public static function card($name, $args)
     {

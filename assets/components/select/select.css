@@ -53,6 +53,7 @@
     }
 
     &:has([aria-expanded="true"]) {
+        z-index:100;
         [role="listbox"] {
             content-visibility: visible;
             opacity: 1;
