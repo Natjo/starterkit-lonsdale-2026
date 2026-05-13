@@ -14,13 +14,8 @@ $classesValue = is_array($args) ? ($args["classes"] ?? "") : "";
 $placeholder = is_array($args) ? !empty($args["placeholder"]) : false;
 $breakpoint = (int) (is_array($args) ? ($args["breakpoint"] ?? 768) : 768);
 $lazyFlag = is_array($args) ? !empty($args["lazy"]) : true;
-$imagesPayload = is_array($args) && is_array($args["images"] ?? null) ? $args["images"] : null;
-$desktopSize = is_array($args)
-    ? (($args["desktop_size"] ?? null) ?? ($imagesPayload["desktop_size"] ?? null) ?? "full")
-    : "full";
-$mobileSize = is_array($args)
-    ? (($args["mobile_size"] ?? null) ?? ($imagesPayload["mobile_size"] ?? null) ?? "full")
-    : "full";
+$desktopSize = is_array($args) ? ($args["desktop_size"] ?? "full") : "full";
+$mobileSize = is_array($args) ? ($args["mobile_size"] ?? "full") : "full";
 
 if (empty($raw["desktop"]) && empty($raw["mobile"])) {
     if ($placeholder) {

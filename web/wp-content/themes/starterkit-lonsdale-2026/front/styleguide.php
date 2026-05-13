@@ -67,6 +67,8 @@ $card_news = [
         <?php sg_component('select'); ?>
 
         <?php sg_component('autocomplete'); ?>
+        
+        <?php sg_component('image'); ?>
 
         <?php
 

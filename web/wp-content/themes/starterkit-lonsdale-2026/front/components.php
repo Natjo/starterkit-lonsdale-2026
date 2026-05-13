@@ -39,18 +39,17 @@ class component
         ]);
     }
 
-    public static function picture($args, $classes = "", $lazy = true, $placeholder = false, $breakpoint = 768)
+    public static function picture($args, $sizes = "full", $classes = "", $lazy = true, $placeholder = false, $breakpoint = 768)
     {
-        $images = is_array($args) ? ($args["images"] ?? null) : null;
-        $desktopSize = "full";
-        $mobileSize = "full";
-        if (is_array($args)) {
-            $desktopSize = ($args["desktop_size"] ?? null)
-                ?? (is_array($images) ? ($images["desktop_size"] ?? null) : null)
-                ?? "full";
-            $mobileSize = ($args["mobile_size"] ?? null)
-                ?? (is_array($images) ? ($images["mobile_size"] ?? null) : null)
-                ?? "full";
+        // $sizes accepte :
+        // - une string  → desktop seulement (mobile retombe sur "full")
+        // - un tableau  → [desktop, mobile] (index 0 = desktop, index 1 = mobile)
+        if (is_array($sizes)) {
+            $desktopSize = isset($sizes[0]) && $sizes[0] !== "" ? (string) $sizes[0] : "full";
+            $mobileSize = isset($sizes[1]) && $sizes[1] !== "" ? (string) $sizes[1] : "full";
+        } else {
+            $desktopSize = is_string($sizes) && $sizes !== "" ? $sizes : "full";
+            $mobileSize = "full";
         }
 
         get_template_part('template-parts/components/picture', '', [
@@ -135,12 +134,13 @@ class component
         ]);
     }
 
-    public static function picto($name, $size = "", $classes = null, $attributes = null)
+    public static function picto($name, $type = "", $size = "", $classes = null, $attributes = null)
     {
         if (empty($name)) return;
 
         get_template_part('template-parts/components/picto', '', [
             "name" => $name,
+            "type" => $type,
             "size" => $size,
             "classes" => $classes,
             "attributes" => $attributes,

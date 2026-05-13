@@ -4,7 +4,7 @@ $icons_list = isset($icons_list) && is_array($icons_list) ? $icons_list : [];
 
 <sg-part type="component" tag="html,css" label="Picto" name="picto">
     <code class="sg-code-inline" data-syntax="php">
-        picto($name, $size = "", $classes = null, $attributes = null)
+        picto($name, $type = "", $size = "", $classes = null, $attributes = null)
     </code>
 
     <div class="sg-components-builder">
@@ -26,6 +26,17 @@ $icons_list = isset($icons_list) && is_array($icons_list) ? $icons_list : [];
                             <?php foreach ($icons_list as $icon) : ?>
                                 <option value="<?= esc_attr($icon['id']) ?>"<?= ($icon['id'] ?? '') === 'youtube' ? ' selected' : '' ?>><?= esc_html($icon['id']) ?></option>
                             <?php endforeach; ?>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td>$type</td>
+                    <td>Type</td>
+                    <td class="sg-table-value">
+                        <select data-param="type">
+                            <option value="" selected>Primaire</option>
+                            <option value="picto-2">Secondaire</option>
+                            <option value="picto-3">tertiare</option>
                         </select>
                     </td>
                 </tr>
@@ -59,8 +70,8 @@ $icons_list = isset($icons_list) && is_array($icons_list) ? $icons_list : [];
         </table>
 
         <sg-builder-result
-            code="component:picto('youtube', '')"
-            data-sg-params="name,size,classes,attributes"
+            code="component:picto('youtube', 'picto-1', '')"
+            data-sg-params="name,type,size,classes,attributes"
         ></sg-builder-result>
     </div>
 </sg-part>

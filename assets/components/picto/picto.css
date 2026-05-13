@@ -14,14 +14,26 @@
         width: var(--size);
         height: var(--size);
     }
-    &.sm{
+
+    &.sm {
         --size: 2.5rem;
     }
 
-    &.lg{
+    &.lg {
         --size: 4.5rem;
     }
 
     @media (--breakpoint-md-down) {}
+}
 
+
+
+.picto-2 {
+    background-color: var(--color-2);
+}
+
+.picto-3 {
+    background: none;
+    border: 1px solid var(--color-2);
+    color: var(--color-2);
 }

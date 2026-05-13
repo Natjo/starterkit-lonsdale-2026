@@ -484,7 +484,10 @@ body {
     .sg-components-builder-result {
         position: sticky;
         top: 240px;
-
+        img {
+            max-width: 100%;
+            height: auto;
+        }
         picture {
             width: 100%;
 

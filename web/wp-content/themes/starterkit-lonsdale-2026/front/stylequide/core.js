@@ -1103,15 +1103,33 @@ const initBtnCodeBuilder = () => {
             return getInput(param);
         };
 
-        const syncArgsInputsVisibility = () => {
-            if (!argsTypeInput && !typeInput) return;
-            const type = getEffectiveArgsType();
-            Object.entries(argsInputsByType).forEach(([key, input]) => {
-                const isActive = key === type;
-                input.hidden = !isActive;
-                // Inline style to avoid any CSS overriding `[hidden]`.
-                input.style.display = isActive ? "" : "none";
+        // Generic: toggle any element with `data-args-type-show="<type> [<type> ...]"`
+        // based on the active args-type. Use space-separated types to allow multi-match
+        // (e.g. `data-args-type-show="id src"`).
+        const argsTypeShowEls = Array.from(builderRoot.querySelectorAll("[data-args-type-show]"));
+        const syncArgsTypeShowVisibility = (type) => {
+            argsTypeShowEls.forEach((el) => {
+                const allowed = (el.getAttribute("data-args-type-show") || "")
+                    .split(/\s+/)
+                    .map((t) => t.trim())
+                    .filter(Boolean);
+                const isActive = allowed.length === 0 || allowed.includes(type);
+                el.hidden = !isActive;
+                el.style.display = isActive ? "" : "none";
             });
+        };
+
+        const syncArgsInputsVisibility = () => {
+            const type = getEffectiveArgsType();
+            if (argsTypeInput || typeInput) {
+                Object.entries(argsInputsByType).forEach(([key, input]) => {
+                    const isActive = key === type;
+                    input.hidden = !isActive;
+                    // Inline style to avoid any CSS overriding `[hidden]`.
+                    input.style.display = isActive ? "" : "none";
+                });
+            }
+            syncArgsTypeShowVisibility(type);
         };
         syncArgsInputsVisibility();
 
@@ -1187,6 +1205,31 @@ const initBtnCodeBuilder = () => {
                         payload[param] = getMergedSize();
                         return;
                     }
+                    if (param === "sizes") {
+                        const desktopEl = builderRoot.querySelector('[data-param="sizes_desktop"]');
+                        const mobileEl = builderRoot.querySelector('[data-param="sizes_mobile"]');
+                        const desk = (desktopEl?.value || "").trim();
+                        const mob = (mobileEl?.value || "").trim();
+                        const mobDef = (mobileEl?.getAttribute?.("data-default") || "").trim();
+                        const type = getActiveArgsType();
+                        if (type === "var") {
+                            // Si mobile est au défaut, on retombe sur la string desktop seule
+                            // (cohérent avec le snippet et avec component::picture()).
+                            const mobileAtDefault = !mob || (mobDef && mob === mobDef);
+                            if (mobileAtDefault) {
+                                payload[param] = desk;
+                            } else {
+                                const arr = [];
+                                if (desk) arr.push(desk);
+                                if (mob) arr.push(mob);
+                                payload[param] = arr;
+                            }
+                        } else {
+                            // id / src / pas d'args-type → image unique : on n'envoie que le desktop.
+                            payload[param] = desk;
+                        }
+                        return;
+                    }
 
                     const el = resolveParamEl(param);
                     if (el instanceof HTMLInputElement && el.type === "checkbox") {
@@ -1248,14 +1291,31 @@ const initBtnCodeBuilder = () => {
             if (!param) return "";
             if (param === "classes" || param === "size") return "";
             if (param === "args") return "";
+
+            // `sizes` est un param virtuel agrégé depuis 2 selects.
+            // Comme `buildCall` collapse vers la string desktop quand mobile est
+            // au défaut, le token "par défaut" est toujours la string desktop.
+            if (param === "sizes") {
+                const desktopEl = builderRoot.querySelector('[data-param="sizes_desktop"]');
+                const deskDef = (desktopEl?.getAttribute?.("data-default") || "").trim();
+                return deskDef ? toPhpString(deskDef) : "";
+            }
+
             const el = getInput(param);
             const raw = (
                 el?.getAttribute?.("data-default") ||
                 el?.getAttribute?.("data-sg-default") ||
                 ""
             ).trim();
-            if (!raw) return "";
-            return normalizeParam(raw, "");
+            if (raw) return normalizeParam(raw, "");
+
+            // Auto-détection : pour une checkbox sans `data-default`, on utilise
+            // l'état initial (`defaultChecked`) comme valeur par défaut.
+            if (el instanceof HTMLInputElement && el.type === "checkbox") {
+                return el.defaultChecked ? "true" : "false";
+            }
+
+            return "";
         };
 
         const trimTrailingOptionalParams = (params, defaults = []) => {
@@ -1264,7 +1324,16 @@ const initBtnCodeBuilder = () => {
                 const i = out.length - 1;
                 const last = out[i];
                 const def = defaults[i] || "";
-                if (last === "null" || last === "false" || (def && last === def)) {
+                if (def) {
+                    if (last === def) {
+                        out.pop();
+                        continue;
+                    }
+                    // Valeur explicitement différente du défaut → on garde.
+                    break;
+                }
+                // Pas de défaut connu : on retire les valeurs "neutres".
+                if (last === "null" || last === "false") {
                     out.pop();
                     continue;
                 }
@@ -1303,6 +1372,28 @@ const initBtnCodeBuilder = () => {
                     if (param === "size") {
                         const sizeValue = normalizeParam(getMergedSize(), "null");
                         return sizeValue || "null";
+                    }
+                    if (param === "sizes") {
+                        const desktopEl = builderRoot.querySelector('[data-param="sizes_desktop"]');
+                        const mobileEl = builderRoot.querySelector('[data-param="sizes_mobile"]');
+                        const desk = (desktopEl?.value || "").trim();
+                        const mob = (mobileEl?.value || "").trim();
+                        const mobDef = (mobileEl?.getAttribute?.("data-default") || "").trim();
+                        const type = getActiveArgsType();
+                        if (type === "var") {
+                            // Si mobile est à sa valeur par défaut (ou vide), on émet
+                            // juste la string desktop : `'666_356'` plutôt que `['666_356', 'full']`.
+                            const mobileAtDefault = !mob || (mobDef && mob === mobDef);
+                            if (mobileAtDefault) {
+                                return desk ? toPhpString(desk) : "null";
+                            }
+                            const items = [];
+                            if (desk) items.push(toPhpString(desk));
+                            if (mob) items.push(toPhpString(mob));
+                            return items.length ? `[${items.join(", ")}]` : "null";
+                        }
+                        // id / src / pas d'args-type → image unique → string desktop seulement.
+                        return desk ? toPhpString(desk) : "null";
                     }
                     if (param === "args" && argsTypeInput) {
                         const type = getActiveArgsType();

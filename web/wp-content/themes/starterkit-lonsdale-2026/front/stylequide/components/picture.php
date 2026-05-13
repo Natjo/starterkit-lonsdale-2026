@@ -1,6 +1,10 @@
+<?php
+$image_sizes = function_exists('get_intermediate_image_sizes') ? get_intermediate_image_sizes() : [];
+$image_sizes = array_values(array_unique(array_merge(['full'], (array) $image_sizes)));
+?>
 <sg-part type="component" tag="html" label="Picture" name="picture">
     <code class="sg-code-inline" data-syntax="php">
-        picture($args, $classes = "", $lazy = true, $placeholder = false, $breakpoint = 768)
+        picture($args, $sizes = "full", $classes = "", $lazy = true, $placeholder = false, $breakpoint = 768)
     </code>
 
     <div>Créer un element picture avec un id de l'image, un chemin de l'image ou un tableau d'arguments. </div>
@@ -20,9 +24,8 @@
                     <td>$args</td>
                     <td>
                         <ul>
-                            <li>- id de l'image</li>
-                            <li>- chemin de l'image dans assets</li>
-                            <li>- <b>$args</b> de la strate</li>
+                            <li>id / url de l'image</li>
+                            <li><b>$args</b> de la strate</li>
                         </ul>
                     </td>
                     <td class="sg-table-value">
@@ -47,6 +50,28 @@
                     </td>
                 </tr>
                 <tr>
+                    <td>$sizes</td>
+                    <td>Crop wp (taille enregistrée). <br>
+                    <td class="sg-table-value">
+                        <label>
+                            <span data-args-type-show="var">Desktop</span>
+                            <select data-param="sizes_desktop" data-default="full">
+                                <?php foreach ($image_sizes as $s) : ?>
+                                    <option value="<?= esc_attr($s) ?>" <?= $s === 'full' ? ' selected' : '' ?>><?= esc_html($s) ?></option>
+                                <?php endforeach ?>
+                            </select>
+                        </label>
+                        <label data-args-type-show="var">
+                            Mobile
+                            <select data-param="sizes_mobile" data-default="full">
+                                <?php foreach ($image_sizes as $s) : ?>
+                                    <option value="<?= esc_attr($s) ?>" <?= $s === 'full' ? ' selected' : '' ?>><?= esc_html($s) ?></option>
+                                <?php endforeach ?>
+                            </select>
+                        </label>
+                    </td>
+                </tr>
+                <tr>
                     <td>$classes</td>
                     <td></td>
                     <td>
@@ -57,12 +82,12 @@
                     <td>$lazy</td>
                     <td>Lazy load</td>
                     <td>
-                        <input type="checkbox" data-param="lazy" checked>
+                        <input type="checkbox" data-param="lazy" checked data-default="true">
                     </td>
                 </tr>
                 <tr>
                     <td>placeholder</td>
-                    <td>Afficher un placeholder si pas d'images desktop ou mobile</td>
+                    <td>Afficher un placeholder si pas d'images</td>
                     <td>
                         <input type="checkbox" data-param="placeholder">
                     </td>
@@ -71,29 +96,15 @@
                     <td>$breakpoint</td>
                     <td>mobile / desktop</td>
                     <td>
-                        <input type="number" data-param="breakpoint" value="768">
+                        <input type="number" data-param="breakpoint" value="768" data-default="768">
                     </td>
                 </tr>
             </tbody>
         </table>
 
         <sg-builder-result
-            code="component:picture(460)"
-            data-sg-params="args,classes,lazy,placeholder,breakpoint"></sg-builder-result>
-    </div>
-
-    <div class="sg-implementation">
-        <h4 class="sg-h4">Sizes</h4>
-
-
-        <sg-snippet no-copy class="implementation">
-  
-$args["images"]["desktop_size"] = "413_224";
-
-$args["images"]["mobile_size"] = "200_100";
-
-component::picture($args);
-        </sg-snippet>
+            code="component:picture($args, $sizes, $classes, $lazy, $placeholder, $breakpoint)"
+            data-sg-params="args,sizes,classes,lazy,placeholder,breakpoint"></sg-builder-result>
     </div>
 
 </sg-part>
