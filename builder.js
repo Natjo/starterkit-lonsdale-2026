@@ -58,7 +58,7 @@ const postcssProcessor = postcss(
     ]);
 const core = {
     generateModuleMap() {
-        const loadableRoots = ["modules", "strates"];
+        const loadableRoots = ["modules", "strates", "components"];
         const map = {};
 
         for (const root of loadableRoots) {
@@ -344,8 +344,8 @@ watch(src, { recursive: true }, (evt, file) => {
         if (filename === fromCss) core.app_styles(true);
     }
 
-    // Regenerate module map when loadable modules/strates change
-    if (ext === ".js" && (/^assets\/modules\//.test(relFilePosix) || /^assets\/strates\//.test(relFilePosix))) {
+    // Regenerate module map when loadable modules/strates/components change
+    if (ext === ".js" && (/^assets\/modules\//.test(relFilePosix) || /^assets\/strates\//.test(relFilePosix) || /^assets\/components\//.test(relFilePosix))) {
         const changed = core.generateModuleMap();
         if (changed) {
             core.compile(path.join(__dirname, "assets", "app.js"), path.join(__dirname, dist, "assets", "app.js"), ".js");

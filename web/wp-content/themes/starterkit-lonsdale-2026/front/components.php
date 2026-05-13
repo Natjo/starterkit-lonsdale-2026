@@ -135,14 +135,15 @@ class component
         ]);
     }
 
-    public static function picto($name, $size = "", $animate = false)
+    public static function picto($name, $size = "", $classes = null, $attributes = null)
     {
         if (empty($name)) return;
 
         get_template_part('template-parts/components/picto', '', [
             "name" => $name,
             "size" => $size,
-            "animate" => $animate
+            "classes" => $classes,
+            "attributes" => $attributes,
         ]);
     }
 
@@ -156,6 +157,25 @@ class component
         ]);
     }
 
+
+
+
+    /**
+     * @param array<int, array{name:string,value?:string,selected?:bool,disabled?:bool}> $args
+     */
+    public static function select($args, $label, $multi = false, $classes = null, $attributes = null)
+    {
+        if (empty($args) || !is_array($args)) return;
+
+        addStyle("select", "components");
+        get_template_part('template-parts/components/select', '', [
+            "args" => $args,
+            "label" => $label,
+            "multi" => $multi,
+            "classes" => $classes,
+            "attributes" => $attributes,
+        ]);
+    }
     public static function badge($name, $classes = null, $attributes = null)
     {
         if (empty($name)) return;
@@ -199,7 +219,7 @@ class component
     public static function shares($list, $classes = null)
     {
         if (empty($list)) return;
-      
+
         $args = [
             "list" => $list,
             "classes" => $classes

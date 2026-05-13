@@ -1,1 +1,0 @@
-{"version":3,"sources":["assets/app.css"],"names":[],"mappings":"AAAA,OACI,gBAAiB,CACjB,eAAgB,CAEZ,0BACD,cACH,CACJ","file":"assets/app.css","sourcesContent":[".intro {\n    font-size: 1.8rem;\n    line-height: 1.4;\n\n        @media (--breakpoint-lg-up) {\n       font-size: 2rem;\n    }\n}\n"]}

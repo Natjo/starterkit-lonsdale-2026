@@ -15,7 +15,7 @@
 
             <tbody>
                 <tr>
-                    <td>$args / title</td>
+                    <td>$args</td>
                     <td>Tableau associatif avec le titre ou<br> le titre en string</td>
                     <td class="sg-table-value">
                         <select data-param="args-type">
@@ -32,7 +32,7 @@
                     </td>
                 </tr>
                 <tr>
-                    <td>hx</td>
+                    <td>$hx</td>
                     <td>Niveau de titre</td>
                     <td>
                         <select data-param="hx">
@@ -46,7 +46,7 @@
                     </td>
                 </tr>
                 <tr>
-                    <td>classes</td>
+                    <td>$classes</td>
                     <td>Classes optionnelles</td>
                     <td class="sg-table-value">
                         <select data-param="classes">
@@ -57,7 +57,7 @@
                     </td>
                 </tr>
                 <tr>
-                    <td>attributes</td>
+                    <td>$attributes</td>
                     <td>Attributs optionnels</td>
                     <td class="sg-table-value">
                         <input type="text" data-param="attributes" placeholder='aria-label="Title"'>

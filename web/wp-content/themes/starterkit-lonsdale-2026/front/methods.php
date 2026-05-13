@@ -282,7 +282,8 @@ function sg_ajax_preview_picto()
 {
     $name_raw = isset($_POST['name']) ? wp_unslash($_POST['name']) : '';
     $size_raw = isset($_POST['size']) ? wp_unslash($_POST['size']) : '';
-    $animate_raw = isset($_POST['animate']) ? wp_unslash($_POST['animate']) : '';
+    $classes_raw = isset($_POST['classes']) ? wp_unslash($_POST['classes']) : '';
+    $attributes_raw = isset($_POST['attributes']) ? wp_unslash($_POST['attributes']) : '';
 
     $name = trim(sg_parse_literal_string($name_raw));
     if ($name === '' || $name === '$name') {
@@ -290,10 +291,11 @@ function sg_ajax_preview_picto()
     }
 
     $size = trim(sg_parse_literal_string($size_raw));
-    $animate = in_array(strtolower(trim((string) $animate_raw)), ['1', 'true', 'on'], true);
+    $classes = trim(sg_parse_literal_string($classes_raw));
+    $attributes = trim((string) $attributes_raw);
 
     ob_start();
-    component::picto($name, $size, $animate);
+    component::picto($name, $size, $classes ?: null, $attributes ?: null);
     $html = ob_get_clean();
 
     wp_send_json_success([

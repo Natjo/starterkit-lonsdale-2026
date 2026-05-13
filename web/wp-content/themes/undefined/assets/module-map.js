@@ -1,1 +1,0 @@
-export const moduleMap={"modules/lenis":"./modules/lenis/lenis.js","strates/strate-slider":"./strates/strate-slider/strate-slider.js"};

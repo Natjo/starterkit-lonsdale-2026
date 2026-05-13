@@ -1,1 +1,0 @@
-{"version":3,"sources":["assets/app.css"],"names":[],"mappings":"AAAA,aAEI,oBAAqB,CADrB,WAAY,CAGZ,OAEI,cAAe,CACf,eAAe,CAFf,iBAGJ,CACJ","file":"assets/app.css","sourcesContent":[".strate-text {\n    height: 50vh;\n    align-content: center;\n\n    .intro { \n        text-align: center;\n        font-size: 4rem;\n        line-height: 1.2\n    }\n}"]}

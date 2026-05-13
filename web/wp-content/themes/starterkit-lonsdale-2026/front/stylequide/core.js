@@ -1130,22 +1130,39 @@ const initBtnCodeBuilder = () => {
         let previewTimer = null;
         let previewRequestId = 0;
 
-        const classesSelectInput = builderRoot.querySelector('select[data-param="classes"]');
-        const classesTextInput = builderRoot.querySelector('input[data-param="classes"]');
-        const getMergedClasses = () => {
-            return [classesSelectInput?.value || "", classesTextInput?.value || ""]
-                .map((v) => v.trim())
-                .filter(Boolean)
-                .join(" ");
+        // Collect ALL inputs/selects sharing the same `data-param`.
+        // This lets a builder expose several `<select data-param="classes">`
+        // (e.g. variant + size) without losing values.
+        const readControlValues = (controls) => {
+            const out = [];
+            controls.forEach((el) => {
+                if (!el) return;
+                if (el instanceof HTMLSelectElement && el.multiple) {
+                    Array.from(el.selectedOptions).forEach((opt) => {
+                        const v = (opt.value || "").trim();
+                        if (v) out.push(v);
+                    });
+                    return;
+                }
+                const raw = typeof el.value === "string" ? el.value : "";
+                raw.split(/\s+/).forEach((token) => {
+                    const v = token.trim();
+                    if (v) out.push(v);
+                });
+            });
+            // De-duplicate while preserving order.
+            return Array.from(new Set(out));
         };
 
-        const sizeSelectInput = builderRoot.querySelector('select[data-param="size"]');
-        const sizeTextInput = builderRoot.querySelector('input[data-param="size"]');
-        const getMergedSize = () => {
-            const select = typeof sizeSelectInput?.value === "string" ? sizeSelectInput.value.trim() : "";
-            const text = typeof sizeTextInput?.value === "string" ? sizeTextInput.value.trim() : "";
-            return [select, text].filter(Boolean).join(" ").trim();
-        };
+        const classesControls = Array.from(
+            builderRoot.querySelectorAll('select[data-param="classes"], input[data-param="classes"], textarea[data-param="classes"]')
+        );
+        const getMergedClasses = () => readControlValues(classesControls).join(" ");
+
+        const sizeControls = Array.from(
+            builderRoot.querySelectorAll('select[data-param="size"], input[data-param="size"], textarea[data-param="size"]')
+        );
+        const getMergedSize = () => readControlValues(sizeControls).join(" ");
 
         const updatePreview = () => {
             if (!preview || !ajaxUrl) return;

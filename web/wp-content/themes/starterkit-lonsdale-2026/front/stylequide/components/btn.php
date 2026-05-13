@@ -18,10 +18,8 @@ $icons_list = isset($icons_list) && is_array($icons_list) ? $icons_list : [];
             </thead>
             <tbody>
                 <tr>
-                    <td>args</td>
-                    <td>
-                        <p>Tableau associatif avec le titre ou<br> le titre en string</p>
-                    </td>
+                    <td>$args</td>
+                    <td>Tableau associatif avec le titre ou<br> le titre en string</td>
                     <td class="sg-table-value">
                         <select data-param="args-type">
                             <option value="src">Nom</option>
@@ -45,26 +43,30 @@ $icons_list = isset($icons_list) && is_array($icons_list) ? $icons_list : [];
                 </tr>
 
                 <tr>
-                    <td>classes</td>
-                    <td>Classes optionnelles</td>
+                    <td>$classes</td>
+                    <td></td>
                     <td class="sg-table-value">
-                        <select data-param="classes">
+                    <select data-param="classes">
                             <option value="btn-1" selected>btn-1</option>
                             <option value="btn-2">btn-2</option>
                         </select>
-
+                        <select data-param="classes">
+                            <option value="sm" >Small</option>
+                            <option value="" selected>Médium</option>
+                            <option value="lg">Large</option>
+                        </select>
                         <input type="text" data-param="classes" placeholder='ma class'>
                     </td>
                 </tr>
-                <tr>
-                    <td>icon</td>
-                    <td>Icône optionnelle</td>
+                <tr class="sg-table-group">
+                    <td>$icon</td>
+                    <td></td>
                     <td class="sg-table-value">
                         <?php if (function_exists('getIcons')) getIcons($icons_list); ?>
                     </td>
                 </tr>
                 <tr>
-                    <td>attributes</td>
+                    <td>$attributes</td>
                     <td>Attributs optionnels</td>
                     <td class="sg-table-value">
                         <input type="text" data-param="attributes" placeholder='aria-hidden="true"'>

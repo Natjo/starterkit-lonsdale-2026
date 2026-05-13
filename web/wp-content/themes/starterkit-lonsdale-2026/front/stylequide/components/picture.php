@@ -1,6 +1,6 @@
 <sg-part type="component" tag="html" label="Picture" name="picture">
     <code class="sg-code-inline" data-syntax="php">
-        picture($args,$classes = "", $lazy = true, $placeholder = false, $breakpoint = 768)
+        picture($args, $classes = "", $lazy = true, $placeholder = false, $breakpoint = 768)
     </code>
 
     <div>Créer un element picture avec un id de l'image, un chemin de l'image ou un tableau d'arguments. </div>
@@ -47,14 +47,14 @@
                     </td>
                 </tr>
                 <tr>
-                    <td>classes</td>
+                    <td>$classes</td>
                     <td></td>
                     <td>
                         <input type="text" data-param="classes" placeholder='ma class'>
                     </td>
                 </tr>
                 <tr>
-                    <td>lazy</td>
+                    <td>$lazy</td>
                     <td>Lazy load</td>
                     <td>
                         <input type="checkbox" data-param="lazy" checked>
@@ -62,14 +62,14 @@
                 </tr>
                 <tr>
                     <td>placeholder</td>
-                    <td>>Afficher un placeholder si pas d'images desktop ou mobile</td>
+                    <td>Afficher un placeholder si pas d'images desktop ou mobile</td>
                     <td>
                         <input type="checkbox" data-param="placeholder">
                     </td>
                 </tr>
                 <tr>
-                    <td>breakpoint</td>
-                    <td>>mobile / desktop</td>
+                    <td>$breakpoint</td>
+                    <td>mobile / desktop</td>
                     <td>
                         <input type="number" data-param="breakpoint" value="768">
                     </td>

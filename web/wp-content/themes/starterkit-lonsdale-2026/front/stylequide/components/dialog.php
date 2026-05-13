@@ -40,7 +40,7 @@ $content = '<p>Lorem ipsum dolor sit amet.</p>
                             <option value="link">link</option>
                         </select>
                         <input type="text" data-param="trigger_name" value="Open dialog">
-                        <input type="text" data-param="trigger_classes" placeholder="ex. my-trigger">
+                        <input type="text" data-param="trigger_classes" placeholder="classes">
                     </td>
                 </tr>
                 <tr>
